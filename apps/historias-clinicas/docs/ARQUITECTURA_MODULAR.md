@@ -1202,3 +1202,33 @@ Hallazgo real de Francisco, más importante que la abstracción técnica pendien
 **Corrección aplicada a `historias_demo`** (con confirmación de Francisco, porque cambiaba lo que ve cualquiera que entre al demo real hoy): se desactivaron `odontologia` y `medicina_laboral` (`enabled=false, source='manual'` — protegido contra reactivarse solo en una futura instalación de otro Componente, mismo mecanismo de Etapa 4.5), dejando activo solo lo que corresponde al perfil `salud_mental` ya decidido para ese tenant desde el inicio de la sesión. Los datos de prueba de Odontología/Medicina Laboral generados durante Etapa 5 ya habían sido borrados; ninguna información real se perdió.
 
 **Relación con Demo Provisioning (sección futura ya documentada)**: `Perfil` es la pieza que le faltaba a ese diseño — "elegir un perfil" en el selector público de demos es exactamente `ComponenteInstaller::instalar($perfil->componentes)` sobre un tenant temporal recién creado (aditivo = exclusivo, porque el tenant nace vacío). El catálogo de perfiles ya existe y está listo; el resto de Demo Provisioning (tenant temporal, 24hs, selector público) sigue siendo trabajo futuro, sin construirse todavía.
+
+---
+
+# Etapa 6 — Perfiles de Implementación y Demos Especializadas
+
+Objetivo completo (Francisco): selector de perfil al crear un tenant (real o demo), demo temporal por perfil con datos específicos, expiración automática, y wizard tanto para demos como para altas de clientes reales. Alcance grande — se divide igual que Etapa 4, empezando por la pieza que todo lo demás necesita.
+
+## Hallazgo de seguridad real, antes de construir nada
+
+`saas_user` (el usuario de MySQL que usa esta app) tiene privilegios `GRANT ALL ... ON *.* ... WITH GRANT OPTION` — **compartido por toda la infraestructura del servidor** (loteos, tallerpro, arioli-saas, historias-clinicas usan el mismo usuario). Es decir: `CREATE DATABASE`/`DROP DATABASE` funcionan, pero un bug de targeting en un futuro job de borrado automático (Etapa 6.3, expiración de demos) no quedaría acotado a `historias_*` — podría alcanzar cualquier base del servidor. **Recomendación, todavía no aplicada**: crear un usuario de MySQL dedicado y acotado (`GRANT ... ON `historias\_%`.* TO ...`) antes de construir el job de expiración automática (6.3). No bloquea 6.1 (creación manual, un comando a la vez, bajo control humano) — sí debería resolverse antes de automatizar el borrado.
+
+## Etapa 6.1 — Provisionar un tenant nuevo por código
+
+Comando `tenants:crear {key} {--perfil=}` (`app/Console/Commands/TenantsCrear.php`). Secuencia: `CREATE DATABASE historias_{key}` → registrar en `tenants` (`status='en_migracion'`) → cambiar la conexión a la DB nueva → `migrate --force` (todo el historial de migraciones, no solo las de plataforma) → `db:seed` (la cadena base: `PermissionsTableSeeder`, `RolesTableSeeder`, `PermissionRoleTableSeeder`, `SecretariaRoleSeeder`, `UsersTableSeeder`, `RoleUserTableSeeder` — sin esto el tenant nace sin ningún usuario con el que loguearse) → `CapabilityStatesSeeder` (habilita los 5 módulos "siempre activos") → si se pasó `--perfil`, `ComponenteInstaller::instalar($perfil->componentes)` → `status='activo'`.
+
+Si algo falla a mitad de camino, **no se borra la base automáticamente** — el tenant queda con `status='error'` para que un humano decida (mismo criterio de no auto-destruir de toda la sesión).
+
+**Validado con un tenant real y descartable** (`historias_prueba_etapa6`, perfil `odontologia`, borrado al final):
+
+| Verificación | Resultado |
+|---|---|
+| Migraciones (todo el historial, no solo plataforma) | ✅ corrieron todas |
+| Usuarios sembrados (incluye admin) | ✅ 3 usuarios, `admin@admin.com` existe |
+| Roles / permisos base | ✅ 3 roles, 68 permisos |
+| Capability core (`historia_clinica`) habilitada | ✅ |
+| Perfil `odontologia` aplicado (`componentes_instalados`, capability `odontologia`) | ✅ |
+| `tenants` (maestra) refleja el nuevo tenant | ✅ `status=activo, last_migration_status=ok` |
+| Rechaza clave duplicada | ✅ |
+
+**Todavía no construido** (próximos pasos de Etapa 6, en orden): 6.2 datos de demo específicos por perfil (seeders); 6.3 expiración automática 24hs (requiere el usuario de MySQL acotado mencionado arriba); 6.4 selector público de demo; 6.5 wizard de alta para clientes reales (perfil + opción "Personalizado" con selección manual de Componentes). Cada una es una pieza independiente — no se construyen todas de una.
