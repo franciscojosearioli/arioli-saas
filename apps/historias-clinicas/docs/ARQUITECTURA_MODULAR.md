@@ -1046,3 +1046,38 @@ Esto **es** acoplamiento — Historia Clínica ahora tiene una línea de código
 Paciente real de `historias_demo`: `crear()` generó un odontograma con las 32 piezas en `sana` (confirmado, no 31 ni 33); las vistas de lista y detalle renderizan contenido real; el botón "Odontología" aparece en la ficha real del paciente con la capability habilitada, desaparece deshabilitada, reaparece restaurada. Datos de prueba borrados al final (odontograma + 32 piezas, cascada).
 
 **La pregunta abierta desde Etapa 4** ("¿qué necesita obligatoriamente una extensión para existir dentro de la plataforma?") **queda respondida por este experimento, al menos para el primer caso real**: nada más allá de lo que `Componente` + `ComponenteExtension` + `navegacionSeed` ya dan. El único punto de fricción (un link condicional en una vista ajena) es aceptable como está — no se generaliza hasta que se repita.
+
+---
+
+# ADR: Extensiones de dominio v1
+
+**Estado**: aceptado.
+
+Un Componente puede agregar, sin ningún mecanismo genérico de extensión:
+
+- modelos propios
+- migraciones propias (código normal, corren en todos los tenants vía `tenants:migrate`, independiente de si el Componente está instalado)
+- permisos propios (vía `ComponenteExtension::instalar()`)
+- navegación propia (vía `navegacionSeed` + `NavigationInstaller`)
+- rutas, controllers y vistas propias (código normal)
+
+**No hace falta, y no se construye todavía**: `extensionPoints()`, `ExtensionContribution` (inyección tipada en un punto que otro módulo declara), `ContributionResolver`, `ExtensionPointRegistry`. Las integraciones puntuales con pantallas del Core se resuelven con un `if` explícito sobre la capability, dentro de la vista del Core (fricción aceptada mientras sea un solo caso — ver Etapa 4.3). Se revisita solo si un segundo Componente necesita el mismo tipo de inyección en el mismo lugar.
+
+## Etapa 4.4 — ¿Es `ComponenteInstaller` suficiente como único orquestador? Sí, confirmado
+
+En vez de construir un `OdontologiaInstaller` dedicado (que hubiera duplicado exactamente lo que `ComponenteInstaller` ya hace — la misma clase de infraestructura especulativa que este ADR acaba de descartar), se corrió la prueba definitiva: reset a estado genuinamente limpio en `historias_demo` (0 permisos `odontologia_*`, sin fila en `capability_states`, sin fila en `componentes_instalados`/`componente_extensiones`) y **un único llamado**:
+
+```php
+app(ComponenteInstallerContract::class)->instalar(['odontologia']);
+```
+
+Resultado, con datos reales, sin ningún paso manual adicional:
+
+| Antes de instalar | Después de instalar (1 llamado) |
+|---|---|
+| 0 permisos `odontologia_*` | 3 permisos creados y asignados a Admin |
+| capability `odontologia` inexistente | `enabled = true` |
+| sin link en la ficha del paciente | link "Odontología" visible |
+| — | página de ficha odontológica accesible |
+
+`ComponenteInstaller` ya es el único orquestador necesario — no se construye `OdontologiaInstaller` ni ningún installer por-componente. El escenario completo que se quería probar (`Tenant limpio → Instalar Odontología → Paciente existente → Aparece ficha odontológica`) quedó confirmado end-to-end.
