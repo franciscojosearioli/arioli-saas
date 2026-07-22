@@ -36,7 +36,7 @@ class DemoExpirar extends Command
             return self::FAILURE;
         }
 
-        $demo->update(['status' => 'expirada']);
+        $demo->update(['status' => 'expirada', 'expirada_at' => now()]);
         $this->info("DemoInstance #{$demo->id} ('{$demo->tenant_key}') marcada como expirada.");
 
         return self::SUCCESS;

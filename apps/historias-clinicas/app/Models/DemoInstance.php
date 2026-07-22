@@ -14,6 +14,7 @@ class DemoInstance extends Model
         'status',
         'expires_at',
         'activada_at',
+        'expirada_at',
         'eliminada_at',
         'error_message',
     ];
@@ -21,6 +22,7 @@ class DemoInstance extends Model
     protected $casts = [
         'expires_at' => 'datetime',
         'activada_at' => 'datetime',
+        'expirada_at' => 'datetime',
         'eliminada_at' => 'datetime',
     ];
 }

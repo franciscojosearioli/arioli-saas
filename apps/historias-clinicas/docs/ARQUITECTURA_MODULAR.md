@@ -1307,6 +1307,31 @@ Los 4 registros y 2 bases físicas de esta validación se borraron al terminar �
 
 **Etapa 6.3.2 (automatización) queda para después**, y consiste únicamente en programar lo que ya existe y ya se probó: un scheduler que corra `demo:expirar` sobre las `activa` con `expires_at` vencido y `demo:limpiar` sobre las `expirada`, más logging/alertas sobre las que terminen en `error`. No hace falta nueva infraestructura — los tres comandos ya son la pieza reutilizable.
 
+## Etapa 6.3.2 — Automatización: el scheduler orquesta, no reimplementa
+
+Antes de programar nada se validó el modelo operativo real (no se asumió): **historias-clinicas corre como una única aplicación/codebase/contenedor** (`saas_historias`), con los tenants aislados únicamente por base de datos y por contexto de request (`IdentifyTenant` reapunta la conexión `mysql` según el subdominio) — no hay un contenedor ni proceso por tenant, y los demos no son una aplicación aparte: son tenants temporales, indistinguibles a nivel de código/datos de un cliente real, con la única diferencia de tener una fila en `demo_instances`. Confirma que un scheduler es una propiedad de **la aplicación**, no de cada tenant — uno solo alcanza para todos.
+
+**Hallazgo real antes de implementar**: no existía ningún disparador de `schedule:run` para `historias_app` — ni contenedor scheduler propio, ni cron de host. El único `scheduler` (`saas_scheduler`) que corre en `docker-compose.prod.yml` apunta a `./src`, la app central de licencias (`saas_central`), completamente distinta. Consecuencia directa: `agenda:recordatorios` (`dailyAt('08:00')`, preexistente) nunca se ejecutó sola en producción. Esto confirma que el problema a resolver era el **scheduler general de la aplicación**, no algo específico de demos — `demo:expirar-vencidas`/`demo:limpiar-vencidas` simplemente se suman al mismo scheduler que ya hacía falta.
+
+**Implementación**: nuevo servicio `historias_scheduler` en `docker-compose.prod.yml` (mismo patrón que `scheduler`/`saas_scheduler` de la app raíz — `sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"`), mismo build/entorno que `historias_app`, container aparte. `Kernel::schedule()` ahora registra:
+
+```php
+$schedule->command('agenda:recordatorios')->dailyAt('08:00');
+$schedule->command('demo:expirar-vencidas')->hourly();
+$schedule->command('demo:limpiar-vencidas')->hourly();
+```
+
+Ningún comando tiene lógica nueva — el scheduler solo dispara `demo:expirar-vencidas`/`demo:limpiar-vencidas` (6.3.2, que a su vez delegan a `demo:expirar`/`demo:limpiar`, 6.3.1, sin reimplementarlos). Período de gracia entre `expirada` y limpieza física: **6 horas**, usando el nuevo campo `expirada_at` (no `updated_at` — ese puede cambiar por otros motivos mientras el registro sigue expirado, y hubiera corrido el riesgo silencioso de reiniciar el conteo). Auditoría: canal de log dedicado `demo-lifecycle` (`storage/logs/demo-lifecycle-*.log`, driver `daily`, 30 días) — una línea por acción del scheduler, sin tabla nueva.
+
+**Bug real encontrado y corregido al desplegar** (no al diseñar): `docker-entrypoint.sh` tenía `exec php-fpm` hardcodeado al final, ignorando por completo cualquier `command:` pasado por `docker-compose` — el primer intento de levantar `historias_scheduler` terminó corriendo *otra instancia de PHP-FPM* en vez del loop del scheduler. Peor: como ambos contenedores comparten el mismo volumen (`./apps/historias-clinicas:/var/www/html`), el entrypoint también re-ejecutaba `config:cache`/`route:cache`/`view:cache`/`storage:link` en cada arranque — el `historias_scheduler` hubiera estado reescribiendo innecesariamente (y en potencial carrera) los archivos de caché de los que depende `historias_app` en vivo. Corregido: el bloque de build de assets + cache warming + storage:link ahora solo corre `if [ "$1" = "php-fpm" ]` (o sea, solo en el contenedor que sirve HTTP), y el script siempre termina con `exec "$@"` en vez de `exec php-fpm` — mismo comportamiento para `historias_app` (su `command` implícito, heredado de la imagen base, sigue siendo `php-fpm`), comportamiento correcto y sin carrera para `historias_scheduler`.
+
+**Validado en producción con evidencia real, no solo revisión de código**:
+- Con el schedule temporalmente en `everyMinute()` (revertido a `hourly()` apenas confirmado), se creó una demo con `--horas=0` y se observó, sin ninguna invocación manual, que `demo:expirar-vencidas` la detectó y expiró sola — confirmado en `demo_instances` (`status`, `expirada_at`) y en el log dedicado.
+- Confirmado que `historias_app` (el contenedor que sirve tráfico real) no se reinició ni se vio afectado en ningún momento de este trabajo — se validó `docker compose ps` (mismo uptime) y una request real a `https://clinica.arioli.dev/` (200 OK) después de cada cambio de infraestructura.
+- `docker-compose.prod.yml` en el servidor quedó actualizado con el nuevo servicio; en el repo se decidió **no** poblar ese archivo (está trackeado pero vacío — el contenido real vivía solo en el servidor, decisión previa a esta sesión) para no mezclar en un mismo commit configuración de otras apps del VPS (loteos, tallerpro) que no corresponde versionar como efecto colateral de este trabajo.
+
+Con esto, Etapa 6.3 (`DemoInstance`) queda completa: ciclo manual validado (6.3.1) + automatización que orquesta sin reimplementar (6.3.2).
+
 ## Corte — Etapa 6 pausa acá
 
 Con 6.1 (provisión por código) y 6.2 (Escenarios Demo coherentes) validados de punta a punta, el resto de Etapa 6 cambia de naturaleza: deja de ser arquitectura/producto y pasa a ser infraestructura y operaciones (credenciales, jobs automáticos, tolerancia a fallos). Se cierra la sesión acá a propósito, no por agotamiento del trabajo.

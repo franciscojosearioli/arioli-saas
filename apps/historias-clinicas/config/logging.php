@@ -123,6 +123,21 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        /*
+         * Etapa 6.3.2 (ver docs/ARQUITECTURA_MODULAR.md): auditoría de las
+         * corridas automáticas de demo:expirar-vencidas/demo:limpiar-vencidas
+         * — un archivo dedicado, separado de laravel.log, para poder revisar
+         * el proceso automático de ciclo de vida de demos sin ruido de la
+         * app normal.
+         */
+        'demo-lifecycle' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/demo-lifecycle.log'),
+            'level' => 'info',
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
