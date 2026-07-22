@@ -1081,3 +1081,20 @@ Resultado, con datos reales, sin ningún paso manual adicional:
 | — | página de ficha odontológica accesible |
 
 `ComponenteInstaller` ya es el único orquestador necesario — no se construye `OdontologiaInstaller` ni ningún installer por-componente. El escenario completo que se quería probar (`Tenant limpio → Instalar Odontología → Paciente existente → Aparece ficha odontológica`) quedó confirmado end-to-end.
+
+---
+
+# Etapa 4.5 — ¿Se puede apagar un Componente sin dejar basura? Sí, con lo que ya existe
+
+Antes de diseñar un `desinstalar()`, se corrió el experimento con el único mecanismo ya construido: apagar `capability_states.odontologia` (`enabled=false, source='manual'`) — la misma protección preset/manual que ya existía desde Etapa 2. Checklist real, con datos reales (`historias_demo`):
+
+| Verificación | Resultado |
+|---|---|
+| Desaparece navegación | ✅ `NavigationInstaller::resolverPara()` devuelve 0 ítems |
+| Permisos quedan inutilizados (sin removerlos) | ✅ `Gate::allows('odontologia_access')` → `false`, aunque `permission_role` sigue intacto — el Gate exige capability **y** permiso, apagar la capability alcanza |
+| Capability deshabilitada | ✅ `enabled=false` |
+| El dato ya generado (un odontograma + 32 piezas creado *antes* de apagar) sobrevive | ✅ Sigue en la base, íntegro — apagar es un cambio de estado, no un borrado |
+| Pacientes / Historia Clínica siguen funcionando | ✅ La ficha del paciente renderiza completa (otras secciones intactas), el link de Odontología simplemente no aparece |
+| La desactivación es estable (no se reactiva sola) | ✅ Se volvió a llamar `ComponenteInstaller::instalar(['salud_mental'])` (instalar OTRO componente) después de apagar Odontología — `odontologia` siguió `enabled=false, source=manual`, la protección ya construida en Etapa 2 sostiene la decisión |
+
+**Conclusión**: no hizo falta construir nada. "Apagar" un Componente ya es una operación completa y segura con lo existente — es exactamente la distinción que señaló Francisco: la instalación es **código desplegado** (modelos, migraciones, rutas — siempre presentes) + **estado de activación** (`capability_states` — lo único que realmente cambia). Un `desinstalar()` que borre datos sería una operación **distinta y mucho más peligrosa** (pérdida irreversible de información clínica) — deliberadamente no se construye sin una necesidad real y explícita que lo pida; hoy "apagar" ya cubre el caso real (dejar de usar el Componente, sin perder lo ya cargado). Estado real de `historias_demo` restaurado al final (`odontologia` de nuevo `enabled=true, source=preset`, datos de prueba borrados).
