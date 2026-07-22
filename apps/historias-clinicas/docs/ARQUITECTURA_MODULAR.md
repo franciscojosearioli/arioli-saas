@@ -917,3 +917,92 @@ Para que el ítem de menú no fuera un link roto, se creó lo mínimo indispensa
 **Validado end-to-end sobre el archivo real** (no el huérfano): con la capability `odontologia` habilitada, el ítem "Odontología" aparece en el menú de una página real (`Panel/InformeController@index`, que incluye el layout completo); deshabilitada, desaparece; restaurada, reaparece. La página placeholder renderiza su contenido real.
 
 **Sigue sin construirse**: las tablas del odontograma (piezas, superficies, estados, historial) y su UI — Caso 3 solo estaba pendiente de resolver el problema de navegación, no de resolver Odontología como funcionalidad. El contrato de `ComponenteExtension` (`version()`/`instalar()`) sigue sin necesitar cambios — la necesidad de esta etapa fue de navegación, no de instalación, y por eso se resolvió con un mecanismo nuevo y chico (`navegacionSeed`/`NavigationInstaller`) en vez de forzarla dentro de `ComponenteExtension`.
+
+---
+
+# Etapa 4.2 — Consolidación (solo documentación, sin cambios de código)
+
+## Los installers de plataforma tienen dos naturalezas distintas
+
+Hasta 4.1 el pipeline se leía como una sola familia homogénea. No lo es — hay dos grupos con una diferencia real:
+
+```
+Componente
+  |
+  ├── Instalación persistente (produce estado guardado en DB)
+  |      ├── CapabilityInstaller       → capability_states
+  |      ├── FieldVisibilityInstaller  → field_visibility
+  |      ├── aplicarTiposDocumento()   → informes_tipos / plantillas_documento
+  |      └── aplicarConfiguracionInicial() → configuracion_sistema
+  |
+  └── Resolución runtime (produce una vista derivada, no persiste nada)
+         └── NavigationInstaller       → NavigationItem[] resueltos en cada request
+```
+
+**Los installers de plataforma pueden ser persistentes o resolutivos. `NavigationInstaller` pertenece al segundo grupo: transforma declaraciones de Componentes en elementos de navegación disponibles, sin guardar ese resultado en ninguna tabla** — exactamente el mismo criterio que ya regía `PlatformRegistry::navigationParaUsuario()` para `ModuleDefinition`, ahora explícito como categoría. Si en el futuro aparece un tercer caso resolutivo (ej. un `DashboardInstaller` que resuelve qué widgets mostrar), esta distinción ya está nombrada y no hay que redescubrirla.
+
+## Los dos problemas del hallazgo de navegación, separados a propósito
+
+- **Problema A (resuelto en 4.1)**: Componentes opcionales no podían aportar navegación. Solución: `navegacionSeed` + `NavigationInstaller`.
+- **Problema B (pendiente, anotado como futura etapa "Normalización de navegación base")**: los 5 módulos "siempre activos" tienen su navegación desacoplada de sus capacidades — el menú real (`layouts/app.blade.php`) los muestra siempre, sin `@can`/capability check, mientras el controller sí exige `Gate::denies('agenda_access')` etc. No es una vulnerabilidad (la autorización real sigue en el controller), es una inconsistencia de UX. **No se mezcla con Odontología** — es un problema distinto (normalizar navegación de módulos ya existentes), con su propio momento.
+
+## Nomenclatura — anotado, no decidido
+
+`navegacionSeed` fue la primera evidencia de que un Componente no solo instala datos: también puede aportar **puntos de integración**. Con un solo caso (navegación) no hay necesidad real de generalizar el nombre. Si en el futuro aparecen `permissionSeed`, `dashboardSeed`, `notificationSeed` como necesidades reales (no antes), ahí sí valdría la pena unificar bajo un concepto tipo "Contribution Seeds". **No se implementa ahora.**
+
+## Próximo paso real: Etapa 4.3 — primer dominio odontológico
+
+La infraestructura de Componente ya cubrió, con necesidad real detrás de cada pieza: configuración, visibilidad, documentos, navegación, extensión (permisos). La pregunta que sigue abierta desde Etapa 4 — **"¿qué necesita obligatoriamente una extensión para existir dentro de la plataforma?"** — todavía no tiene respuesta, y no se responde en el papel: la responde el primer modelo odontológico real.
+
+Etapa 4.3 (siguiente, no en esta sesión): una sola entidad, por ejemplo **Pieza dental** — definir la migración, la relación con `Paciente`, los permisos que necesita, y recién ahí observar si el `ComponenteExtension` actual alcanza o si aparece una necesidad genuina de extenderlo.
+
+---
+
+# Futuro (después de estabilizar Odontología): Demo Provisioning / Temporary Tenants
+
+Necesidad real señalada por Francisco, todavía **sin construir** — se documenta ahora porque cambia el concepto de "Componente instalado" (deja de ser solo sobre una institución existente, pasa a ser también sobre un tenant temporal), pero se resuelve después de Odontología, no en paralelo.
+
+## El problema
+
+Hoy `demo.clinica.arioli.dev` entra directo al login. La necesidad real: que sea un **selector público de demos** antes del login, que provisione un tenant temporal (24hs) para el sistema elegido.
+
+## Flujo esperado
+
+```
+demo.clinica.arioli.dev
+        ↓
+Pantalla pública de selección (Clínica / Odontología / Salud Mental / ...)
+        ↓
+Usuario elige un sistema
+        ↓
+Se provisiona un tenant temporal (pantalla de carga: "Preparando tu demo...")
+        ↓
+"Tu demo está lista — disponible las próximas 24 horas" + botón "Ingresar al demo"
+        ↓
+Login del tenant temporal generado
+```
+
+Pantalla de carga, pasos sugeridos: "✓ Creando entorno / ✓ Instalando componente / ✓ Aplicando configuración inicial / ✓ Preparando datos de ejemplo".
+
+## Modelo de datos conceptual (no implementado)
+
+```
+demo_instances
+  id
+  component_key
+  tenant_id
+  status        -- pending | provisioning | ready | expired | deleted
+  created_at
+  expires_at    -- created_at + 24h
+  deleted_at
+```
+
+Expiración: un job programado (o el `scheduler` que ya corre en el stack, ver `agenda:recordatorios` en `Kernel::schedule()`) revisa `demo_instances` vencidas y elimina el tenant temporal.
+
+## Por qué esto valida (no contradice) las decisiones ya tomadas
+
+- **El mismo `ComponenteInstaller`** (`CapabilityInstaller` + `FieldVisibilityInstaller` + `DocumentInstaller`/`aplicarTiposDocumento` + `ConfigurationInstaller` + `NavigationInstaller`) sería el responsable de preparar la demo — la única diferencia es que el Componente se instala sobre un **tenant temporal**, no sobre una institución existente. No hace falta un pipeline nuevo, hace falta decidir cuándo/cómo se crea ese tenant temporal (probablemente reutilizando `IdentifyTenant`/la tabla `tenants` ya existente, con un `status` adicional tipo `'demo'`).
+- **`DemoCatalog`** (qué Componentes se ofrecen como demo público) es explícitamente **distinto** de `config/platform/componentes.php` (qué Componentes existen en la plataforma) — un Componente puede existir sin estar publicado como demo. Evita que el selector público lea directamente el catálogo interno.
+- **Refuerza, en retrospectiva, la decisión de no convertir Odontología en `ModuleDefinition`**: si fuera un módulo "siempre activo", instalarlo temporalmente para una demo de 24hs no tendría un camino natural. Como `Componente` opcional, "instalar temporalmente" es la misma operación que "instalar", solo que sobre un tenant que se borra solo.
+
+**No se mezcla con `ExtensionContribution`/Odontología dominio** — son capas relacionadas pero distintas: Odontología pregunta "¿qué necesita una extensión para existir dentro de una institución?"; Demo Provisioning pregunta "¿cómo provisionamos una institución temporal con uno o varios Componentes?". Se aborda como su propia etapa, después de estabilizar Odontología.
