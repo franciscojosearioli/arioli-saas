@@ -843,9 +843,43 @@ new Componente(
 
 **Componentes opcionales (`Componente`, vía `ComponenteInstaller`)**: Salud Mental, Odontología. Registrados en `config('componentes')`, con capabilities/fieldVisibility/tiposDocumento/configuracionInicial/extension orquestados y trackeados en `componentes_instalados`.
 
-**Tensión real, sin resolver a propósito**: `ModuleDefinition` y `Componente` son hoy **dos registros paralelos** que ambos terminan escribiendo en `capability_states`, por caminos de código distintos (`CapabilityStatesSeeder` manual vs. `CapabilityInstaller` orquestado). No es un bug — ambos caminos son no-destructivos y conviven sin pisarse — pero es una pregunta de diseño real y todavía abierta: ¿los 5 módulos "siempre activos" deberían modelarse también como `Componente`s (capabilities sin extension, como Salud Mental) para unificar el registro en uno solo, o el Core mantiene esa vía separada a propósito (ModuleDefinition = infraestructura que siempre existe con UI propia; Componente = específicamente lo opcional/instalable)? No se resuelve en este checkpoint — se anota para decidir antes de escalar a 10+ Componentes, momento en el que dos registros paralelos empiezan a costar más que unificarlos.
+**Tensión real — dirección conceptual decidida, implementación diferida**: `ModuleDefinition` y `Componente` son hoy **dos registros paralelos** que ambos terminan escribiendo en `capability_states`, por caminos de código distintos (`CapabilityStatesSeeder` manual vs. `CapabilityInstaller` orquestado). No es un bug — ambos caminos son no-destructivos y conviven sin pisarse.
+
+La dirección conceptual (Francisco, post-Etapa 4): **Platform = capacidades estructurales del sistema** (usuarios, roles, historias clínicas core, pacientes, instituciones); **Componentes = capacidades funcionales instalables** (odontología, salud mental, laboratorio, internación). `capability_states` seguiría siendo una tabla común, pero con un origen explícito:
+
+```
+source_type   -- 'platform' | 'component'
+source_key    -- 'usuarios' | 'odontologia' | ...
+```
+
+**No se implementa ahora** — queda anotado como la dirección a tomar, no como trabajo pendiente de esta sesión. Se revisita cuando escalar a 10+ Componentes haga que mantener dos registros paralelos cueste más que unificarlos.
 
 ## Pendientes reales encontrados en este checkpoint (no arquitectura, estado del proyecto)
 
 - **Nada de lo construido en esta sesión (Fase 0 a Etapa 4) está en control de versiones.** `apps/historias-clinicas` figura como `# Sub-apps (not versioned in this repo yet — deployed via rsync)` en el `.gitignore` del monorepo — decisión previa e intencional, no un descuido de esta sesión. "Etiquetar una versión interna" requiere primero decidir si este es el momento de empezar a trackearlo.
-- **Sigue sin existir aislamiento de DB para tests** (decisión ya tomada después de Fase 0: seguir con verificación manual por ahora). Ahora que se pide una suite de regresión automatizada, esa decisión merece revisitarse — no tiene sentido escribir tests que corran contra `historias_demo`/`historias_default` reales.
+- **Sigue sin existir aislamiento de DB para tests** (decisión ya tomada después de Fase 0: seguir con verificación manual por ahora). Se revisitó después de este checkpoint y se confirmó la misma decisión: posponer, seguir con verificación manual.
+
+## Contrato de `Componente` — congelado hasta validar extensiones
+
+El contrato actual queda **congelado** a propósito, antes de entrar a `ExtensionContribution`/Odontología con tablas propias:
+
+```
+Componente
+{
+    key
+    nombre
+    capabilities
+    fieldVisibilitySeed
+    tiposDocumentoSeed
+    configuracionInicial
+    extension   -- ?ComponenteExtension, agregado en Etapa 4
+}
+```
+
+No se agrega `routes()`, `controllers()`, `models()`, `migrations()` todavía — haría exactamente lo que toda la sesión evitó: infraestructura sin un caso real que la obligue. La pregunta guía para cuando se retome (Etapa 4.1, sin implementar Odontología todavía) es **"¿qué necesita obligatoriamente una extensión para existir dentro de la plataforma?"** — y la respuesta tiene que salir de intentar construir Odontología de verdad, no al revés.
+
+## Punto de retorno
+
+`git tag historias-clinicas-checkpoint-etapa4` (commit `d8b2e2e`) — Fase 0, motor de documentos, field_visibility, `ComponenteInstaller`, Salud Mental, config loader genérico, primera `ComponenteExtension` (Odontología mínima). Respaldo adicional del estado de `historias_demo` en ese punto: ver `docs/snapshots/`.
+
+**Antes de seguir con Odontología (comportamiento real, migraciones por componente, versionado, rollback) conviene retomar con la cabeza fresca, no en la misma sesión.**
