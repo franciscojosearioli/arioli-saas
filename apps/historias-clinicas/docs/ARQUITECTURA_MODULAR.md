@@ -1289,6 +1289,24 @@ No es un pendiente — es un requisito de seguridad que bloquea el inicio de 6.3
 
 Con esto resuelto, Etapa 6.3 (ciclo de vida de `DemoInstance`) queda desbloqueada.
 
+## Etapa 6.3.1 — Ciclo de vida manual de `DemoInstance` (validado, sin automatizar)
+
+Antes de escribir cualquier scheduler, se construyó y probó el ciclo completo con acciones **manuales** (comandos ejecutados a mano por un humano, ninguno programado): `demo_instances` (migración en `database/migrations/platform/`, igual que `tenants` — no corre vía `tenants:migrate`), modelo `DemoInstance`, y tres comandos artisan: `demo:crear {perfil} {--horas=24}`, `demo:expirar {id}`, `demo:limpiar {id}`.
+
+**División de responsabilidad frente a Gate G-01**: `demo:crear` reutiliza `tenants:crear` (6.1) tal cual — no duplica lógica de provisión. `demo:expirar` solo escribe un flag en `demo_instances` (DB maestra, conexión normal) — no toca ninguna base de tenant, por eso no necesita `mysql_tenant_admin`. `demo:limpiar` es el único paso destructivo (`DROP DATABASE` + borrar el registro de `tenants`) y es el único que usa la conexión acotada del Gate G-01 — nunca `saas_user`.
+
+**Validado end-to-end en producción, con datos reales y descartables**:
+
+1. `demo:crear odontologia --horas=24` → `DemoInstance #1` pasó `pendiente → provisionando → activa` en una sola corrida, tenant real `demo_odontologia_houjpu` con 5 pacientes y el componente `odontologia` instalado (mismo resultado que 6.1/6.2, ahora orquestado).
+2. `demo:expirar 1` → `activa → expirada`. Reintentarlo (`demo:expirar 1` de nuevo) fue rechazado con exit code 1 porque el estado ya no era `activa` — el guard-rail de transición funciona.
+3. `demo:limpiar 1` → `expirada → eliminando → eliminada`, usando `historias_tenant_admin`. Confirmado: la base `historias_demo_odontologia_houjpu` desapareció de `SHOW DATABASES`, el registro de `tenants` se borró, `demo_instances` quedó con `eliminada_at` seteado.
+
+**Camino de falla probado deliberadamente** (la pregunta explícita de Francisco: "qué pasa si falla a mitad de camino"): se creó una segunda `DemoInstance`, se la expiró, y se borró a mano su fila de `tenants` para simular una inconsistencia real (ej. una corrida previa que falló entre borrar la base y borrar el registro). Al correr `demo:limpiar 2`, el comando detectó que no había `Tenant` asociado, **no tocó la base física** (siguió existiendo, verificado con `SHOW DATABASES`), y dejó `DemoInstance` en `status = 'error'` con `error_message` explicando la inconsistencia — exactamente el criterio de `tenants:crear`: ante cualquier duda, un humano decide, nada se reintenta ni se borra a ciegas. Mismo guard adicional (no ejercitado en esta prueba pero presente en el código): si `tenant->database` no matchea `historias_%`, `demo:limpiar` aborta sin ejecutar el `DROP`.
+
+Los 4 registros y 2 bases físicas de esta validación se borraron al terminar — no queda ningún artefacto de prueba en producción.
+
+**Etapa 6.3.2 (automatización) queda para después**, y consiste únicamente en programar lo que ya existe y ya se probó: un scheduler que corra `demo:expirar` sobre las `activa` con `expires_at` vencido y `demo:limpiar` sobre las `expirada`, más logging/alertas sobre las que terminen en `error`. No hace falta nueva infraestructura — los tres comandos ya son la pieza reutilizable.
+
 ## Corte — Etapa 6 pausa acá
 
 Con 6.1 (provisión por código) y 6.2 (Escenarios Demo coherentes) validados de punta a punta, el resto de Etapa 6 cambia de naturaleza: deja de ser arquitectura/producto y pasa a ser infraestructura y operaciones (credenciales, jobs automáticos, tolerancia a fallos). Se cierra la sesión acá a propósito, no por agotamiento del trabajo.
