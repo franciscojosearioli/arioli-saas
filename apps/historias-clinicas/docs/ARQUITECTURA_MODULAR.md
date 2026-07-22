@@ -1232,3 +1232,21 @@ Si algo falla a mitad de camino, **no se borra la base automáticamente** — el
 | Rechaza clave duplicada | ✅ |
 
 **Todavía no construido** (próximos pasos de Etapa 6, en orden): 6.2 datos de demo específicos por perfil (seeders); 6.3 expiración automática 24hs (requiere el usuario de MySQL acotado mencionado arriba); 6.4 selector público de demo; 6.5 wizard de alta para clientes reales (perfil + opción "Personalizado" con selección manual de Componentes). Cada una es una pieza independiente — no se construyen todas de una.
+
+## Etapa 6.2 — Escenarios Demo (no "seeds", historias clínicas chicas y coherentes)
+
+Decisión de Francisco, importante: no se trata de poblar la base — se trata de que en 5 minutos un especialista sienta que está viendo su propio consultorio. Un `OdontologiaDemoSeeder`/`MedicinaLaboralDemoSeeder`/`SaludMentalDemoSeeder` (`database/seeders/`) por perfil, cada uno chico y con una narrativa real, no datos aleatorios:
+
+- **Odontología**: 2 profesionales con firma digital, 5 pacientes. María González tiene **dos** odontogramas — uno de hace 3 meses con la pieza 26 `cariada` ("se detecta caries"), otro de hoy con la misma pieza `obturada` ("restauración realizada, próximo control en 6 meses") — el histórico real que el modelo (Odontograma como fotografía fechada, no el paciente) fue diseñado para soportar desde Etapa 4.3. Los otros 4 pacientes tienen variaciones reales (ausente, corona, cariada) — nunca 32 piezas "sana" para todos.
+- **Medicina Laboral**: reutiliza `PacienteLaboral` (Core, ya existente) para el dato de empresa — **no hizo falta ninguna entidad nueva** para "Metalúrgica Delta"/"Logística del Sur SA". Juan Pérez con 2 evaluaciones (preocupacional apto → periódico apto con restricciones, con motivo real: exposición a ruido).
+- **Salud Mental**: Laura Fernández, usando exclusivamente las sub-fichas de Paciente que ya existen en el Core (`PacienteFichaAdmision`, `PacienteProblematica`, `PacienteHistorialTratamientos`) — sin inventar sesiones/escalas clínicas, porque esas entidades todavía no existen (sería infraestructura nueva sin necesidad comprobada, fuera del alcance de esta etapa).
+
+**Conectado a `tenants:crear` vía `--con-datos-demo`** (mapeo simple perfil→seeder dentro del comando, no una propiedad nueva en `Perfil` — un único consumidor no amerita más).
+
+**3 bugs reales encontrados y corregidos al probar con un tenant real** (`pacientes` tiene más columnas obligatorias sin default de lo que parecía a simple vista: `fecha_nac`, `edad`, y luego `estado_civil`/`obra_social`/`n_afiliado`/`provincia`/`localidad`/`calle`/`calle_numero`) — se resolvió con un método `datosBase()` por seeder que aporta valores neutros para lo que no hace a la narrativa, y overrides explícitos para lo que sí importa.
+
+**Validado con un tenant real completo, creado y borrado**: `tenants:crear demo_odonto_test --perfil=odontologia --con-datos-demo` → 5 pacientes, 2 profesionales con firma, la narrativa de María González verificada exactamente (pieza 26: `cariada` en la fecha de hace 3 meses → `obturada` hoy, con las observaciones correctas), 8 piezas no-`sana` distribuidas en el tenant (no una base plana). `capability_states` del tenant nuevo mostró **solo** `odontologia` como extra — ninguna mezcla con Medicina Laboral ni Salud Mental, resolviendo directamente el problema original ("el demo me está mostrando todo").
+
+## Corte — Etapa 6 pausa acá
+
+Por instrucción explícita: **Etapa 6.3 (expiración automática) no puede empezar hasta que exista un usuario de MySQL dedicado y acotado a `historias_%`** — gate explícito, no se salta. 6.4 (selector público) y 6.5 (wizard comercial) quedan después de eso.

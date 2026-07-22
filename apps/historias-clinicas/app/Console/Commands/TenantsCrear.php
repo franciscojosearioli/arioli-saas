@@ -21,9 +21,23 @@ use Throwable;
  */
 class TenantsCrear extends Command
 {
-    protected $signature = 'tenants:crear {key : Clave del tenant, minúsculas/números/guión bajo} {--perfil= : Clave de un Perfil en config/platform/perfiles.php}';
+    protected $signature = 'tenants:crear
+        {key : Clave del tenant, minúsculas/números/guión bajo}
+        {--perfil= : Clave de un Perfil en config/platform/perfiles.php}
+        {--con-datos-demo : Sembrar el Escenario Demo del perfil elegido (Etapa 6.2)}';
 
-    protected $description = 'Crea un tenant nuevo: DB + migraciones + seeders base + Perfil opcional';
+    protected $description = 'Crea un tenant nuevo: DB + migraciones + seeders base + Perfil opcional + datos demo opcionales';
+
+    /**
+     * Mapeo perfil -> Escenario Demo. Deliberadamente un array simple acá,
+     * no una propiedad más en Perfil — todavía es un único consumidor
+     * (este comando), no hay evidencia de que amerite vivir en el DTO.
+     */
+    private const ESCENARIOS_DEMO = [
+        'odontologia' => \Database\Seeders\OdontologiaDemoSeeder::class,
+        'medicina_laboral' => \Database\Seeders\MedicinaLaboralDemoSeeder::class,
+        'salud_mental' => \Database\Seeders\SaludMentalDemoSeeder::class,
+    ];
 
     public function handle(): int
     {
@@ -70,6 +84,11 @@ class TenantsCrear extends Command
                 if ($perfil) {
                     app(ComponenteInstallerContract::class)->instalar($perfil->componentes);
                     $this->info("Perfil '{$perfilKey}' aplicado: " . implode(', ', $perfil->componentes ?: ['(sin componentes opcionales)']));
+
+                    if ($this->option('con-datos-demo') && isset(self::ESCENARIOS_DEMO[$perfilKey])) {
+                        Artisan::call('db:seed', ['--class' => self::ESCENARIOS_DEMO[$perfilKey], '--force' => true]);
+                        $this->info("Escenario demo de '{$perfilKey}' sembrado.");
+                    }
                 } else {
                     $this->warn("Perfil '{$perfilKey}' no existe en config/platform/perfiles.php — tenant creado sin componentes opcionales.");
                 }
