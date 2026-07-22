@@ -1175,3 +1175,30 @@ Mismo patrón exacto que Odontología, entidad mínima: `EvaluacionLaboral` (`ap
 ## La decisión que queda pendiente: ¿la repetición del link ya cruza el umbral?
 
 La única fila realmente nueva es la de fricción de navegación — **se repitió exactamente igual**, línea por línea, en el mismo archivo (`panel/pacientes/show.blade.php`). Es la primera vez que algo se repite dos veces en esta serie. La regla que se venía usando ("se generaliza en la segunda repetición real, no antes") apuntaría a que **este es el momento** de considerar `extensionPoints()`/`ExtensionContribution` (v6-v7) para este punto puntual — pero no se construyó todavía: queda como decisión explícita para la próxima ronda, no tomada unilateralmente acá.
+
+## Próximo paso técnico en cola (diseñado, no implementado): contribución a la ficha del paciente
+
+Decisión de Francisco: la abstracción, si se construye, debe ser del tamaño exacto del problema — **no** `extensionPoints()`/`ExtensionContribution` genérico (implicaría un sistema general sin evidencia para eso: sigue habiendo un único punto de extensión). El nombre y el contrato deben ser específicos de la ficha del paciente. Diseño ya acordado, listo para implementar cuando se retome:
+
+```php
+interface PatientProfileContribution
+{
+    public function actions(Paciente $paciente): array; // [['label' => ..., 'route' => ..., 'permission' => ...], ...]
+}
+```
+
+`panel/pacientes/show.blade.php` pasaría de dos bloques `@if/@can` calcados (Odontología, Medicina Laboral) a un único `@foreach` sobre las acciones resueltas — el mismo patrón que `NavigationInstaller` ya usa para el menú, aplicado ahora al punto de fricción real encontrado en Etapa 5. Alcance acotado del experimento cuando se implemente: un único punto de contribución para la ficha del paciente, migrar Odontología y Medicina Laboral a usarlo, verificar que `show.blade.php` ya no menciona ningún Componente por nombre, **no tocar ninguna otra pantalla**. Si aparece un segundo tipo de contribución (menú lateral, dashboard, ficha de otra entidad), ahí sí — no antes — se generaliza en una interfaz más amplia.
+
+**No se implementó en esta sesión** — quedó reordenado detrás de una necesidad de producto más urgente (ver siguiente sección).
+
+## Etapa 5.1 — Perfil de institución (producto, no arquitectura)
+
+Hallazgo real de Francisco, más importante que la abstracción técnica pendiente: **el demo mostraba todo a la vez** (Salud Mental + Odontología + Medicina Laboral instalados juntos en `historias_demo`, acumulados de las pruebas de esta sesión) — nada que un cliente real reconociera como su propio sistema. Un odontólogo no debería ver "Medicina Laboral"; un centro de medicina laboral no debería ver "Odontología".
+
+**`Perfil`** (`app/Platform/DTO/Perfil.php`) — mismo espíritu que `Componente`: puramente descriptivo, no sabe cómo se aplica. `key`, `nombre`, `descripcion`, `componentes: string[]` (claves de `Componente`). `config/platform/perfiles.php` — catálogo, recogido automáticamente por el `mergeConfigFrom` genérico de `PlatformServiceProvider` (nada que registrar a mano): `clinica_general` (sin componentes opcionales), `odontologia`, `medicina_laboral`, `salud_mental`.
+
+**No se construyó ningún instalador nuevo** — "aplicar" un perfil es literalmente `ComponenteInstaller::instalar($perfil->componentes)`, sin ninguna clase intermedia. Nota honesta sobre el alcance real: `Perfil` es tan aditivo como `Componente` — perfecto para un **tenant nuevo** (aditivo = exclusivo cuando no hay nada previo), pero aplicar un perfil sobre un tenant que ya tiene otros Componentes activos **no los desinstala solo** — eso sigue siendo el paso explícito de desactivación por `capability_states` (Etapa 4.5), deliberado, no automático.
+
+**Corrección aplicada a `historias_demo`** (con confirmación de Francisco, porque cambiaba lo que ve cualquiera que entre al demo real hoy): se desactivaron `odontologia` y `medicina_laboral` (`enabled=false, source='manual'` — protegido contra reactivarse solo en una futura instalación de otro Componente, mismo mecanismo de Etapa 4.5), dejando activo solo lo que corresponde al perfil `salud_mental` ya decidido para ese tenant desde el inicio de la sesión. Los datos de prueba de Odontología/Medicina Laboral generados durante Etapa 5 ya habían sido borrados; ninguna información real se perdió.
+
+**Relación con Demo Provisioning (sección futura ya documentada)**: `Perfil` es la pieza que le faltaba a ese diseño — "elegir un perfil" en el selector público de demos es exactamente `ComponenteInstaller::instalar($perfil->componentes)` sobre un tenant temporal recién creado (aditivo = exclusivo, porque el tenant nace vacío). El catálogo de perfiles ya existe y está listo; el resto de Demo Provisioning (tenant temporal, 24hs, selector público) sigue siendo trabajo futuro, sin construirse todavía.
