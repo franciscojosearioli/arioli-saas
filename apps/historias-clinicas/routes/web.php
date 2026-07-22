@@ -149,6 +149,9 @@ Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 
 Route::group(['as' => 'panel.', 'namespace' => 'Panel', 'middleware' => ['auth', '2fa', 'setup.check']], function () {
     Route::get('/dashboard', 'HomeController@index')->name('home');
 
+    // Odontología (mínimo real — ver docs/ARQUITECTURA_MODULAR.md Etapa 4.1)
+    Route::get('odontologia', 'OdontologiaController@index')->name('odontologia.index')->middleware('capability:odontologia');
+
     // Mensajería
     Route::get('messenger',               'MessengerController@index')->name('messenger.index');
     Route::get('messenger/create',        'MessengerController@createTopic')->name('messenger.createTopic');

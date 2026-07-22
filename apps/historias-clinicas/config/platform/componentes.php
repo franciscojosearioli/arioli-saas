@@ -2,6 +2,7 @@
 
 use App\Modules\Odontologia\OdontologiaExtension;
 use App\Platform\DTO\Componente;
+use App\Platform\DTO\NavigationItem;
 
 /*
  * Catálogo de Componentes — Etapa 3/4 (ver docs/ARQUITECTURA_MODULAR.md).
@@ -26,8 +27,18 @@ return [
     'odontologia' => new Componente(
         key: 'odontologia',
         nombre: 'Odontología',
-        descripcion: 'Módulo odontológico — versión mínima, solo permisos provisionados dinámicamente.',
+        descripcion: 'Módulo odontológico — versión mínima, permisos provisionados dinámicamente + un ítem de menú real.',
         capabilities: ['odontologia'],
         extension: new OdontologiaExtension(),
+        navegacionSeed: [
+            new NavigationItem(
+                key: 'odontologia',
+                label: 'Odontología',
+                route: 'panel.odontologia.index',
+                capabilityRequerida: 'odontologia',
+                permisoRequerido: 'odontologia_access',
+                orden: 96,
+            ),
+        ],
     ),
 ];

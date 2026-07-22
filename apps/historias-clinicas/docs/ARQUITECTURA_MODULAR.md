@@ -883,3 +883,37 @@ No se agrega `routes()`, `controllers()`, `models()`, `migrations()` todavía �
 `git tag historias-clinicas-checkpoint-etapa4` (commit `d8b2e2e`) — Fase 0, motor de documentos, field_visibility, `ComponenteInstaller`, Salud Mental, config loader genérico, primera `ComponenteExtension` (Odontología mínima). Respaldo adicional del estado de `historias_demo` en ese punto: ver `docs/snapshots/`.
 
 **Antes de seguir con Odontología (comportamiento real, migraciones por componente, versionado, rollback) conviene retomar con la cabeza fresca, no en la misma sesión.**
+
+---
+
+# Etapa 4.1 — Primera necesidad real de Odontología: navegación
+
+Retomando con la regla acordada (**no diseñar `ExtensionContribution` primero — dejar que una necesidad real de Odontología obligue el contrato**): se probaron los 3 casos reales contra las herramientas ya existentes (`Componente` + `ComponenteInstaller`).
+
+- **Caso 1 (ficha odontológica: antecedentes, hábitos)** → encaja en `fieldVisibilitySeed`/`configuracionInicial`. No se implementó todavía (no hay campos reales en Paciente para ocultar/mostrar — implementarlo ahora sería fabricar un preset sin contraparte real en la UI).
+- **Caso 2 (documentos odontológicos: ficha, consentimiento, presupuesto)** → encaja en `tiposDocumentoSeed`, ya soportado desde Etapa 3. No se implementó todavía por la misma razón.
+- **Caso 3 (Odontograma: piezas, superficies, estados, historial)** → **sí reveló una necesidad real no cubierta**: tablas propias (van por migración Laravel normal, no por `ComponenteExtension` — distinción ya resuelta en Etapa 4) y, más importante, **un ítem de menú** — y ningún `Componente` podía aportar navegación todavía, solo `ModuleDefinition` podía (`NavigationContribution`, vía `PlatformRegistry`). Exactamente la tensión Platform/Componentes ya anotada en el checkpoint, llegando antes de lo esperado.
+
+## Hallazgo real durante la implementación: el menú documentado en Fase 0 nunca estuvo conectado
+
+Al ir a conectar el nuevo ítem de navegación, se descubrió que **`resources/views/partials/menu.blade.php` — el archivo que Fase 0 tomó como "el menú real" para diseñar `PlatformRegistry::navigationParaUsuario()`, con sus `@can('agenda_access')`, etc. — no lo incluye nada en la aplicación.** Es código huérfano: `grep -rn "partials.menu" resources/views/` no devuelve ningún resultado. La investigación de Fase 0 confió en que un archivo con el patrón correcto (condicional por permiso) era el menú en producción, sin verificar que estuviera efectivamente incluido — la lección concreta: verificar que una vista se renderiza de verdad (buscar quién la incluye), no solo que su contenido parece correcto.
+
+**El menú real** vive inline dentro de `resources/views/layouts/app.blade.php` (`<nav class="sidebar-nav">`, línea ~597). Ahí apareció un segundo hallazgo, más importante: **los 5 ítems de los módulos "siempre activos" (Pacientes, Agenda, Informes, Prescripciones, Recetas) no tienen ningún gating por capability ni por permiso en el menú real** — se muestran siempre. La autorización real sigue funcionando (cada controller valida `Gate::denies(...)`), así que no es un problema de seguridad, pero sí una inconsistencia de UX real y preexistente: un usuario sin `agenda_access`, o un tenant con la capability `agenda` apagada, vería igual el ítem "Agenda" en el menú y recibiría un 403 al entrar. **No se corrige en esta pasada** — es una corrección más grande (tocar los 5 ítems existentes) fuera del alcance de "conectar la navegación de Odontología", queda anotada como deuda real encontrada.
+
+## `navegacionSeed` + `NavigationInstaller`
+
+`Componente` ganó un campo más (contrato ya "congelado" reabierto por una necesidad concreta, no especulativa):
+
+```php
+navegacionSeed: NavigationItem[]   // reutiliza el DTO NavigationItem que ya existía para ModuleDefinition
+```
+
+`NavigationInstaller` (`app/Platform/Services/NavigationInstaller.php`) — nota honesta en su propio docblock: **no persiste nada**. A diferencia de `CapabilityInstaller`/`FieldVisibilityInstaller`, la navegación de un Componente se resuelve en el momento de pedirla (mismo criterio que ya usaba `PlatformRegistry` para `ModuleDefinition` — ninguna de las dos guarda "ítems de menú" en una tabla). Se llama "Installer" por consistencia de nombres con el resto del pipeline, no porque escriba estado; por eso **no** se invoca desde `ComponenteInstaller::instalar()` — no hay nada que instalar, solo resolver en cada request. `resolverPara(User $user)` filtra por capability + permiso, igual que `PlatformRegistry::navigationParaUsuario()`.
+
+## Odontología: página mínima real (no el odontograma)
+
+Para que el ítem de menú no fuera un link roto, se creó lo mínimo indispensable: `Panel/OdontologiaController@index` (gateado por `Gate::denies('odontologia_access')`, permiso que ya existía desde Etapa 4), ruta `panel.odontologia.index` con `->middleware('capability:odontologia')` (mismo middleware que ya protege Consentimientos), y una vista placeholder ("módulo en construcción"). El Componente `odontologia` declara `navegacionSeed` apuntando ahí.
+
+**Validado end-to-end sobre el archivo real** (no el huérfano): con la capability `odontologia` habilitada, el ítem "Odontología" aparece en el menú de una página real (`Panel/InformeController@index`, que incluye el layout completo); deshabilitada, desaparece; restaurada, reaparece. La página placeholder renderiza su contenido real.
+
+**Sigue sin construirse**: las tablas del odontograma (piezas, superficies, estados, historial) y su UI — Caso 3 solo estaba pendiente de resolver el problema de navegación, no de resolver Odontología como funcionalidad. El contrato de `ComponenteExtension` (`version()`/`instalar()`) sigue sin necesitar cambios — la necesidad de esta etapa fue de navegación, no de instalación, y por eso se resolvió con un mecanismo nuevo y chico (`navegacionSeed`/`NavigationInstaller`) en vez de forzarla dentro de `ComponenteExtension`.

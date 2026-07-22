@@ -6,11 +6,13 @@ use App\Platform\Contracts\Services\CapabilityInstallerContract;
 use App\Platform\Contracts\Services\ComponenteInstallerContract;
 use App\Platform\Contracts\Services\ExtensionInstallerContract;
 use App\Platform\Contracts\Services\FieldVisibilityInstallerContract;
+use App\Platform\Contracts\Services\NavigationInstallerContract;
 use App\Platform\PlatformRegistry;
 use App\Platform\Services\CapabilityInstaller;
 use App\Platform\Services\ComponenteInstaller;
 use App\Platform\Services\ExtensionInstaller;
 use App\Platform\Services\FieldVisibilityInstaller;
+use App\Platform\Services\NavigationInstaller;
 use Illuminate\Support\ServiceProvider;
 
 class PlatformServiceProvider extends ServiceProvider
@@ -31,6 +33,7 @@ class PlatformServiceProvider extends ServiceProvider
         $this->app->bind(CapabilityInstallerContract::class, CapabilityInstaller::class);
         $this->app->bind(ComponenteInstallerContract::class, ComponenteInstaller::class);
         $this->app->bind(ExtensionInstallerContract::class, ExtensionInstaller::class);
+        $this->app->bind(NavigationInstallerContract::class, NavigationInstaller::class);
 
         $this->registrarConfiguracionDePlataforma();
     }

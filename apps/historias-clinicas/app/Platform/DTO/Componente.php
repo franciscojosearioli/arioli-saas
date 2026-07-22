@@ -16,6 +16,7 @@ final class Componente
      * @param string[] $fieldVisibilitySeed claves de preset en config/platform/field_visibility_presets.php
      * @param array $tiposDocumentoSeed
      * @param array $configuracionInicial
+     * @param NavigationItem[] $navegacionSeed ítems de menú que aporta este Componente cuando está instalado
      */
     public function __construct(
         public readonly string $key,
@@ -26,6 +27,7 @@ final class Componente
         public readonly array $tiposDocumentoSeed = [],
         public readonly array $configuracionInicial = [],
         public readonly ?ComponenteExtension $extension = null,
+        public readonly array $navegacionSeed = [],
     ) {
     }
 }
