@@ -1098,3 +1098,39 @@ Antes de diseñar un `desinstalar()`, se corrió el experimento con el único me
 | La desactivación es estable (no se reactiva sola) | ✅ Se volvió a llamar `ComponenteInstaller::instalar(['salud_mental'])` (instalar OTRO componente) después de apagar Odontología — `odontologia` siguió `enabled=false, source=manual`, la protección ya construida en Etapa 2 sostiene la decisión |
 
 **Conclusión**: no hizo falta construir nada. "Apagar" un Componente ya es una operación completa y segura con lo existente — es exactamente la distinción que señaló Francisco: la instalación es **código desplegado** (modelos, migraciones, rutas — siempre presentes) + **estado de activación** (`capability_states` — lo único que realmente cambia). Un `desinstalar()` que borre datos sería una operación **distinta y mucho más peligrosa** (pérdida irreversible de información clínica) — deliberadamente no se construye sin una necesidad real y explícita que lo pida; hoy "apagar" ya cubre el caso real (dejar de usar el Componente, sin perder lo ya cargado). Estado real de `historias_demo` restaurado al final (`odontologia` de nuevo `enabled=true, source=preset`, datos de prueba borrados).
+
+---
+
+# ADR: Ciclo de vida de componentes v1
+
+**Estado**: aceptado.
+
+Un Componente tiene **dos dimensiones independientes**:
+
+**1. Presencia técnica** — el código existe en la aplicación (`app/Modules/Odontologia/`, sus migraciones, rutas, vistas). No depende del tenant — está desplegado o no está, para todos los tenants por igual.
+
+**2. Activación funcional** — el tenant decide si usa esa capacidad (`capability_states.odontologia.enabled`, con `source = 'preset' | 'manual'`). Esto sí es por tenant, y es lo único que cambia al "instalar" o "desactivar".
+
+**Regla**: desactivar una capacidad **nunca** elimina información histórica. Los datos que un Componente generó (odontogramas, piezas dentales, lo que sea) sobreviven a la desactivación — quedan inertes, no borrados. Una eliminación real de datos, si alguna vez hace falta, es una operación **distinta, explícita y deliberadamente separada** de "desactivar" — no se construye hasta que exista una necesidad concreta que la pida.
+
+Corolario práctico de estas dos ADR juntas (Extensiones de dominio v1 + Ciclo de vida v1): la plataforma no es un sistema de plugins genérico — es un **sistema de capacidades activables dentro de un producto modular**. No hay instalación/desinstalación de código en runtime, no hay un registro de "qué versión de qué extensión corre en qué tenant" más allá de lo que `componente_extensiones`/`capability_states` ya trackean. Es una diferencia de alcance deliberada, no una limitación.
+
+---
+
+## Etapa 4 — cerrada
+
+Con esto, la serie de experimentos que arrancó preguntando "¿qué necesita una extensión para existir dentro de la plataforma?" queda respondida con evidencia real, no con diseño especulativo:
+
+| Pregunta | Resultado |
+|---|---|
+| ¿Puede existir una extensión aislada (sin que el Core la conozca)? | ✅ |
+| ¿Puede agregar dominio propio (modelos, tablas, relaciones)? | ✅ |
+| ¿Puede agregar permisos propios? | ✅ |
+| ¿Puede agregar navegación propia? | ✅ |
+| ¿Puede instalarse con un único llamado, sin pasos manuales? | ✅ |
+| ¿Puede desactivarse sin dejar el sistema roto? | ✅ |
+| ¿Pierde datos al desactivarse? | ❌ (correctamente, no) |
+
+Ninguna de las abstracciones que parecían necesarias al principio de la etapa (`ExtensionContribution` genérico, `ExtensionRegistry`, un `Lifecycle Manager`, un installer por módulo) se terminó construyendo — cada vez que una capa parecía necesaria, el experimento con Odontología real demostró que sobraba. Lo que sí se construyó (`navegacionSeed`/`NavigationInstaller`, el ADR de extensiones de dominio, el ADR de ciclo de vida) nació de necesidad comprobada, no de anticipación.
+
+**Próximo paso, cuando se retome**: Etapa 5 — un **segundo** Componente real con dominio propio (candidatos: Medicina Laboral, Pediatría, Laboratorio), no para agregar funcionalidad por agregarla, sino para responder la pregunta que un solo caso no puede responder — **qué de lo construido para Odontología era específico de Odontología, y qué es realmente un patrón reutilizable**. Recién ahí, si algo se repite entre los dos Componentes, esa repetición (no la imaginación) justifica generalizar.
