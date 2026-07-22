@@ -1151,18 +1151,27 @@ Encaje comercial (para cuando se retome el lado SaaS): `Plan Clínica Base + Mó
 
 **Frase de cierre**: la modularidad no se logró haciendo el sistema más abstracto; se logró haciendo que cada capacidad tenga dueño y que la activación sea explícita.
 
-## Punto de partida de Etapa 5 — tabla comparativa (para observar, no para diseñar)
+## Etapa 5 — Segundo Componente real: Medicina Laboral
 
-Antes de elegir el segundo Componente, llenar esto con lo que realmente aparezca — no adelantar filas que todavía no se sabe si aplican:
+Mismo patrón exacto que Odontología, entidad mínima: `EvaluacionLaboral` (`app/Modules/MedicinaLaboral/Models/EvaluacionLaboral.php`) — `tipo` (preocupacional/periódico/egreso), `fecha`, `estado` (apto/no_apto/apto_con_restricciones), `observaciones`. `belongsTo Paciente`/`User`; `Paciente.php` otra vez sin tocar. `MedicinaLaboralExtension implements ComponenteExtension` provisiona `medicina_laboral_access/create/edit` — código deliberadamente calcado de `OdontologiaExtension` para poder comparar de verdad.
 
-| Capacidad | Odontología | (segundo Componente) | ¿Generalizable? |
+**Validado con el mismo rigor**: reset a estado limpio (0 permisos, sin capability, sin `componentes_instalados`) → un único `ComponenteInstaller::instalar(['medicina_laboral'])` → 3 permisos creados y asignados, capability habilitada, link visible en la ficha real del paciente. Creación real vía formulario (tipo/fecha/estado/observaciones), lista renderiza el registro real, capability ON/OFF/restaurado controla el link. Todo con datos descartables, limpiado al final.
+
+**Bug real encontrado y corregido en el camino**: `EvaluacionLaboral` sin `$table` explícito generaba `evaluacion_laborals` (pluralización naive de Eloquent, en inglés) en vez de `evaluaciones_laborales` — a diferencia de `Odontograma`, cuyo plural naive coincidía por casualidad con el real. Lección práctica, no arquitectónica: todo modelo con nombre en español necesita `$table` explícito, no confiar en la convención de Eloquent.
+
+## Tabla comparativa — con datos reales, no proyectados
+
+| Capacidad | Odontología | Medicina Laboral | ¿Generalizable? |
 |---|---|---|---|
-| Permisos | ✅ | | |
-| Navegación | ✅ | | |
-| Datos propios | ✅ | | |
-| Instalación (single-call) | ✅ | | |
-| Historial / no se borra al desactivar | ✅ | | |
-| Formularios dinámicos | | | |
-| Documentos (tiposDocumentoSeed) | | | |
+| Permisos (vía `ComponenteExtension`) | ✅ | ✅ | Ya generalizado — mismo contrato, mismo código calcado |
+| Navegación (`navegacionSeed`) | ✅ | ✅ | Ya generalizado — mismo mecanismo desde Etapa 4.1 |
+| Datos propios (modelo + tabla, sin tocar Paciente) | ✅ | ✅ | Ya generalizado — es la regla del ADR "Extensiones de dominio v1" |
+| Instalación single-call | ✅ | ✅ | Ya generalizado — `ComponenteInstaller` sin cambios |
+| Historial / no se borra al desactivar | ✅ | ✅ (mismo mecanismo, no re-probado con datos esta vez) | Ya generalizado — es el mecanismo de `capability_states`, no algo por-componente |
+| **Fricción de navegación en `panel/pacientes/show.blade.php`** | ✅ (7 líneas) | ✅ (7 líneas, calcadas) | **Se repitió exacto — ver nota abajo** |
+| Formulario de creación | Sin formulario (snapshot fijo de 32 piezas) | **Formulario real** (tipo/fecha/estado/observaciones) | No generalizable todavía — son formas de dominio genuinamente distintas, un formulario dinámico sería anticipar sin un tercer caso |
+| Documentos (`tiposDocumentoSeed`) | No usado | No usado | Sigue sin datos para decidir nada |
 
-Si dos columnas coinciden en una fila, esa repetición es lo único que justificaría extraer una abstracción nueva — no antes.
+## La decisión que queda pendiente: ¿la repetición del link ya cruza el umbral?
+
+La única fila realmente nueva es la de fricción de navegación — **se repitió exactamente igual**, línea por línea, en el mismo archivo (`panel/pacientes/show.blade.php`). Es la primera vez que algo se repite dos veces en esta serie. La regla que se venía usando ("se generaliza en la segunda repetición real, no antes") apuntaría a que **este es el momento** de considerar `extensionPoints()`/`ExtensionContribution` (v6-v7) para este punto puntual — pero no se construyó todavía: queda como decisión explícita para la próxima ronda, no tomada unilateralmente acá.

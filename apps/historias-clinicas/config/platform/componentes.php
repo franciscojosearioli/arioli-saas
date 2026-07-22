@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\MedicinaLaboral\MedicinaLaboralExtension;
 use App\Modules\Odontologia\OdontologiaExtension;
 use App\Platform\DTO\Componente;
 use App\Platform\DTO\NavigationItem;
@@ -38,6 +39,24 @@ return [
                 capabilityRequerida: 'odontologia',
                 permisoRequerido: 'odontologia_access',
                 orden: 96,
+            ),
+        ],
+    ),
+
+    'medicina_laboral' => new Componente(
+        key: 'medicina_laboral',
+        nombre: 'Medicina Laboral',
+        descripcion: 'Evaluaciones laborales (preocupacional/periódico/egreso) — segundo Componente real, Etapa 5.',
+        capabilities: ['medicina_laboral'],
+        extension: new MedicinaLaboralExtension(),
+        navegacionSeed: [
+            new NavigationItem(
+                key: 'medicina_laboral',
+                label: 'Medicina Laboral',
+                route: 'panel.medicina-laboral.index',
+                capabilityRequerida: 'medicina_laboral',
+                permisoRequerido: 'medicina_laboral_access',
+                orden: 97,
             ),
         ],
     ),

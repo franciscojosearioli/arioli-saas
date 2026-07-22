@@ -155,6 +155,11 @@ Route::group(['as' => 'panel.', 'namespace' => 'Panel', 'middleware' => ['auth',
     Route::post('odontologia/paciente/{paciente}', 'OdontologiaController@crear')->name('odontologia.crear')->middleware('capability:odontologia');
     Route::get('odontologia/{odontograma}', 'OdontologiaController@show')->name('odontologia.show')->middleware('capability:odontologia');
 
+    // Medicina Laboral (Etapa 5 — segundo Componente real)
+    Route::get('medicina-laboral', 'MedicinaLaboralController@index')->name('medicina-laboral.index')->middleware('capability:medicina_laboral');
+    Route::get('medicina-laboral/paciente/{paciente}', 'MedicinaLaboralController@porPaciente')->name('medicina-laboral.paciente')->middleware('capability:medicina_laboral');
+    Route::post('medicina-laboral/paciente/{paciente}', 'MedicinaLaboralController@crear')->name('medicina-laboral.crear')->middleware('capability:medicina_laboral');
+
     // Mensajería
     Route::get('messenger',               'MessengerController@index')->name('messenger.index');
     Route::get('messenger/create',        'MessengerController@createTopic')->name('messenger.createTopic');
