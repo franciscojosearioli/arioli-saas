@@ -1006,3 +1006,43 @@ Expiración: un job programado (o el `scheduler` que ya corre en el stack, ver `
 - **Refuerza, en retrospectiva, la decisión de no convertir Odontología en `ModuleDefinition`**: si fuera un módulo "siempre activo", instalarlo temporalmente para una demo de 24hs no tendría un camino natural. Como `Componente` opcional, "instalar temporalmente" es la misma operación que "instalar", solo que sobre un tenant que se borra solo.
 
 **No se mezcla con `ExtensionContribution`/Odontología dominio** — son capas relacionadas pero distintas: Odontología pregunta "¿qué necesita una extensión para existir dentro de una institución?"; Demo Provisioning pregunta "¿cómo provisionamos una institución temporal con uno o varios Componentes?". Se aborda como su propia etapa, después de estabilizar Odontología.
+
+---
+
+# Etapa 4.3 — Primera entidad odontológica real: el experimento que responde la pregunta pendiente
+
+Objetivo del experimento (tal como lo planteó Francisco): instalar Odontología en una demo limpia y que aparezca `Paciente → ficha odontológica → odontograma vacío`. Se construyó lo mínimo — no el odontograma visual, no tratamientos, no presupuestos.
+
+## Modelo de dominio
+
+- **`Odontograma`** (`app/Modules/Odontologia/Models/Odontograma.php`) — `belongsTo Paciente`, `belongsTo User` (profesional), `hasMany PiezaDental`. Tablas normales (`odontogramas`, `piezas_dentales`), migradas vía `tenants:migrate` como cualquier otra — no pasan por `ComponenteExtension`, coherente con la distinción ya resuelta en Etapa 4 ("una migración es evolución de esquema, no capacidad instalable").
+- **`PiezaDental`** — `belongsTo Odontograma`. Notación FDI adulta (32 piezas, 11-48).
+- **Decisión de diseño (Opción B del planteo de Francisco)**: la pieza dental pertenece al **odontograma** (una fotografía del estado en una fecha), no al paciente directamente — porque el estado cambia (`sana` → `cariada` → `obturada` → `extraída`), y ese histórico vive en el odontograma que la registró, no en un dato estático del paciente. Cada odontograma nuevo crea sus 32 piezas en estado `sana` por defecto (una fotografía completa, no un diff incremental — la más simple de las dos formas de modelarlo, y suficiente para esta primera versión).
+
+## El límite que se cuidó
+
+`app/Models/Paciente.php` (Core) **no se tocó** — no tiene ningún método `odontogramas()`. La dependencia va en un solo sentido: `Odontograma` conoce `Paciente` (`use App\Models\Paciente`), Paciente no sabe que Odontología existe. Para navegar de paciente a sus odontogramas, el controller de Odontología consulta directo (`Odontograma::where('paciente_id', ...)`), no a través de una relación en el modelo Core.
+
+## La fricción real encontrada — y por qué no justifica `ExtensionContribution` todavía
+
+El dominio en sí (modelos, tablas, controller, vistas) se construyó **sin ninguna fricción** — cero necesidad de un mecanismo de extensión. La única fricción real apareció al intentar cumplir el objetivo completo: que se llegue a la ficha odontológica **desde la página del paciente**, no como una sección desconectada.
+
+Para lograrlo hubo que **editar `resources/views/panel/pacientes/show.blade.php`** (vista de Historia Clínica, Core) y agregar un botón condicional:
+
+```blade
+@if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('odontologia'))
+@can('odontologia_access')
+<a href="{{ route('panel.odontologia.paciente', $Paciente->id) }}">Odontología</a>
+@endcan
+@endif
+```
+
+Esto **es** acoplamiento — Historia Clínica ahora tiene una línea de código que menciona la capability `odontologia` por nombre. Es exactamente el problema que `extensionPoints()`/`ExtensionContribution` (v6-v7, todavía sin construir) fue diseñado para eliminar: que un módulo destino declare un punto de extensión y el que aporta contenido no obligue al destino a conocerlo por nombre.
+
+**Conclusión, siguiendo la misma regla de toda la sesión (generalizar en la segunda repetición real, no en la primera)**: esta fricción es real pero **chica** — 7 líneas, un único punto, no requiere que Historia Clínica conozca nada del dominio interno de Odontología (modelos, tablas), solo una capability y un nombre de ruta. **No justifica construir `extensionPoints()` todavía.** Se deja anotado el candidato concreto: si un segundo Componente (ej. Pediatría, Medicina Laboral) necesita el mismo tipo de inyección en la misma página, ahí sí esas 2 repeticiones justifican generalizar este bloque en un extension point real (`historia_clinica.paciente.acciones` o similar) — no antes.
+
+## Validado end-to-end con datos reales y descartables
+
+Paciente real de `historias_demo`: `crear()` generó un odontograma con las 32 piezas en `sana` (confirmado, no 31 ni 33); las vistas de lista y detalle renderizan contenido real; el botón "Odontología" aparece en la ficha real del paciente con la capability habilitada, desaparece deshabilitada, reaparece restaurada. Datos de prueba borrados al final (odontograma + 32 piezas, cascada).
+
+**La pregunta abierta desde Etapa 4** ("¿qué necesita obligatoriamente una extensión para existir dentro de la plataforma?") **queda respondida por este experimento, al menos para el primer caso real**: nada más allá de lo que `Componente` + `ComponenteExtension` + `navegacionSeed` ya dan. El único punto de fricción (un link condicional en una vista ajena) es aceptable como está — no se generaliza hasta que se repita.

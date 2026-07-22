@@ -149,8 +149,11 @@ Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 
 Route::group(['as' => 'panel.', 'namespace' => 'Panel', 'middleware' => ['auth', '2fa', 'setup.check']], function () {
     Route::get('/dashboard', 'HomeController@index')->name('home');
 
-    // Odontología (mínimo real — ver docs/ARQUITECTURA_MODULAR.md Etapa 4.1)
+    // Odontología (mínimo real — ver docs/ARQUITECTURA_MODULAR.md Etapa 4.1 y 4.3)
     Route::get('odontologia', 'OdontologiaController@index')->name('odontologia.index')->middleware('capability:odontologia');
+    Route::get('odontologia/paciente/{paciente}', 'OdontologiaController@porPaciente')->name('odontologia.paciente')->middleware('capability:odontologia');
+    Route::post('odontologia/paciente/{paciente}', 'OdontologiaController@crear')->name('odontologia.crear')->middleware('capability:odontologia');
+    Route::get('odontologia/{odontograma}', 'OdontologiaController@show')->name('odontologia.show')->middleware('capability:odontologia');
 
     // Mensajería
     Route::get('messenger',               'MessengerController@index')->name('messenger.index');
