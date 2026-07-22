@@ -984,20 +984,39 @@ Login del tenant temporal generado
 
 Pantalla de carga, pasos sugeridos: "✓ Creando entorno / ✓ Instalando componente / ✓ Aplicando configuración inicial / ✓ Preparando datos de ejemplo".
 
-## Modelo de datos conceptual (no implementado)
+## `DemoInstance` — modelo de datos conceptual con ciclo de vida explícito (no implementado)
+
+Actualizado post 6.1/6.2: ya existen `tenants` (`tenant_key`, `database`) y `Perfil` (`perfil_key`) de verdad — `DemoInstance` se apoya en ambos en vez de inventar sus propias claves. El objetivo de 6.3, tal como lo dejó Francisco, **no es "un cron que borra bases"** — es el ciclo de vida completo, con estado explícito, reintentable ante fallos, y trazable:
 
 ```
 demo_instances
   id
-  component_key
-  tenant_id
-  status        -- pending | provisioning | ready | expired | deleted
+  tenant_key       -- FK lógica a tenants.tenant_key
+  perfil_key       -- FK lógica a config/platform/perfiles.php
+  status           -- pendiente | provisionando | activa | expirada | eliminando | eliminada | error
   created_at
-  expires_at    -- created_at + 24h
-  deleted_at
+  expires_at       -- created_at + 24h
+  activada_at
+  eliminada_at
 ```
 
-Expiración: un job programado (o el `scheduler` que ya corre en el stack, ver `agenda:recordatorios` en `Kernel::schedule()`) revisa `demo_instances` vencidas y elimina el tenant temporal.
+```
+pendiente
+    ↓
+provisionando   -- tenants:crear corriendo (6.1, ya construido)
+    ↓
+activa          -- lista, usuario puede entrar
+    ↓
+expirada        -- pasó expires_at, todavía no se borró
+    ↓
+eliminando      -- job de limpieza tomó el registro
+    ↓
+eliminada       -- DB borrada, tenants + demo_instances actualizados
+```
+
+`error` es un estado transversal (puede llegar desde `provisionando` o `eliminando`) — mismo criterio de no auto-destruir usado en `tenants:crear`: un fallo deja el registro en `error` para que un humano decida, nunca reintenta solo ni borra a ciegas. Esto es lo que da **trazabilidad y reintentos** — y una base sin rediseño para mejoras futuras (extender duración, recordatorios antes de expirar) que Francisco ya anticipa como posibles, sin necesitar tocar el modelo cuando aparezcan.
+
+Expiración: un job programado (o el `scheduler` que ya corre en el stack, ver `agenda:recordatorios` en `Kernel::schedule()`) mueve `activa`→`expirada`→`eliminando`→`eliminada`, usando el usuario de MySQL acotado del Gate G-01 — nunca el usuario global.
 
 ## Por qué esto valida (no contradice) las decisiones ya tomadas
 
@@ -1258,3 +1277,5 @@ No es un pendiente — es un requisito de seguridad que bloquea el inicio de 6.3
 Con 6.1 (provisión por código) y 6.2 (Escenarios Demo coherentes) validados de punta a punta, el resto de Etapa 6 cambia de naturaleza: deja de ser arquitectura/producto y pasa a ser infraestructura y operaciones (credenciales, jobs automáticos, tolerancia a fallos). Se cierra la sesión acá a propósito, no por agotamiento del trabajo.
 
 **Próxima sesión, en orden**: resolver Gate G-01 (usuario MySQL acotado) → 6.3 (expiración automática 24hs) → 6.4 (selector público de demo) → 6.5 (wizard de alta para clientes reales, perfil + "Personalizado").
+
+**Confirmado antes de arrancar 6.3**: el Gate G-01 no es negociable — ningún proceso automático de creación/borrado de tenants se implementa hasta tener el usuario MySQL acotado a `historias_%` resuelto y probado. El objetivo de 6.3 no es "escribir el job de borrado" — es el ciclo de vida completo de `DemoInstance` (ver sección de arriba), con la misma metodología de siempre: resolver el primer caso real, observar la fricción, generalizar recién si aparece una segunda repetición. No se introduce infraestructura nueva si la existente (`tenants:crear`, `ComponenteInstaller`, `Perfil`) alcanza.
