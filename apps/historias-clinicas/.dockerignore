@@ -1,0 +1,13 @@
+.git
+.gitignore
+.gitattributes
+node_modules
+docker-compose.yml
+Dockerfile
+*.md
+.env
+.env.*
+storage/logs/*.log
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
