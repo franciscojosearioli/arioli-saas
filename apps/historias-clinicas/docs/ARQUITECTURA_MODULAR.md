@@ -1134,3 +1134,35 @@ Con esto, la serie de experimentos que arrancó preguntando "¿qué necesita una
 Ninguna de las abstracciones que parecían necesarias al principio de la etapa (`ExtensionContribution` genérico, `ExtensionRegistry`, un `Lifecycle Manager`, un installer por módulo) se terminó construyendo — cada vez que una capa parecía necesaria, el experimento con Odontología real demostró que sobraba. Lo que sí se construyó (`navegacionSeed`/`NavigationInstaller`, el ADR de extensiones de dominio, el ADR de ciclo de vida) nació de necesidad comprobada, no de anticipación.
 
 **Próximo paso, cuando se retome**: Etapa 5 — un **segundo** Componente real con dominio propio (candidatos: Medicina Laboral, Pediatría, Laboratorio), no para agregar funcionalidad por agregarla, sino para responder la pregunta que un solo caso no puede responder — **qué de lo construido para Odontología era específico de Odontología, y qué es realmente un patrón reutilizable**. Recién ahí, si algo se repite entre los dos Componentes, esa repetición (no la imaginación) justifica generalizar.
+
+## Cierre de Etapa 4
+
+No se descubrió un sistema de plugins. Se descubrió un modelo de:
+
+```
+Aplicación
+  +-- Componentes disponibles (presencia técnica, código desplegado)
+  +-- Capacidades activables por tenant (capability_states)
+```
+
+Tres reglas quedaron congeladas: (1) un Componente no necesita un framework de extensiones mientras no haya repetición real; (2) código desplegado y activación por tenant son dos cosas distintas — eso es lo que permite vender módulos, activar por cliente, hacer demos, apagar capacidades y mantener históricos, todo con el mismo mecanismo; (3) el Core habilita capacidades, no conoce módulos futuros — Odontología domina sus propios datos, Historia Clínica nunca tuvo que saber que existía.
+
+Encaje comercial (para cuando se retome el lado SaaS): `Plan Clínica Base + Módulo Odontología + Módulo Laboral + Módulo Pediatría` ya es un concepto natural sobre esta arquitectura, sin que el Core se vuelva un monstruo — cada módulo nuevo es un Componente más en el catálogo, no una modificación al núcleo.
+
+**Frase de cierre**: la modularidad no se logró haciendo el sistema más abstracto; se logró haciendo que cada capacidad tenga dueño y que la activación sea explícita.
+
+## Punto de partida de Etapa 5 — tabla comparativa (para observar, no para diseñar)
+
+Antes de elegir el segundo Componente, llenar esto con lo que realmente aparezca — no adelantar filas que todavía no se sabe si aplican:
+
+| Capacidad | Odontología | (segundo Componente) | ¿Generalizable? |
+|---|---|---|---|
+| Permisos | ✅ | | |
+| Navegación | ✅ | | |
+| Datos propios | ✅ | | |
+| Instalación (single-call) | ✅ | | |
+| Historial / no se borra al desactivar | ✅ | | |
+| Formularios dinámicos | | | |
+| Documentos (tiposDocumentoSeed) | | | |
+
+Si dos columnas coinciden en una fila, esa repetición es lo único que justificaría extraer una abstracción nueva — no antes.
