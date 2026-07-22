@@ -11,16 +11,32 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Etapa 6.1: provisiona un tenant nuevo por código — la base técnica que
- * el resto de "Perfiles de Implementación y Demos Especializadas" necesita.
- * Sin UI, sin expiración automática todavía (ver docs/ARQUITECTURA_MODULAR.md).
+ * Etapa 6.1 + Gate G-01 (ver docs/ARQUITECTURA_MODULAR.md): provisiona un
+ * tenant nuevo por código, usando exclusivamente la conexión
+ * `mysql_tenant_admin` — un usuario acotado al patrón `historias_%`, sin
+ * privilegios administrativos de servidor. Nunca usa la conexión `mysql`
+ * (la de `saas_user`, compartida por toda la infraestructura del servidor).
  *
- * No borra la base automáticamente si algo falla a mitad de camino — el
- * tenant queda con status='error' para que un humano decida, mismo
- * criterio de no auto-destruir que el resto de la sesión.
+ * Ni el modelo Tenant ni los installers de Platform (ComponenteInstaller,
+ * CapabilityInstaller, FieldVisibilityInstaller...) fijan una conexión
+ * explícita: todos usan la conexión default de Eloquent. Por eso este
+ * comando reapunta temporalmente `database.default` a `mysql_tenant_admin`
+ * durante toda su ejecución — el mismo mecanismo que la versión anterior
+ * aplicaba sobre la conexión `mysql`, solo que ahora sobre un usuario
+ * acotado. Se restaura al finalizar (defensivo: el proceso termina de
+ * todos modos al volver de handle()).
+ *
+ * Separación conceptual deliberada (incluso usando hoy el mismo usuario
+ * para ambas): "Database Provisioning" (crear la base física) es una
+ * responsabilidad distinta de "Tenant Provisioning" (migraciones, seeds,
+ * Perfil) — la primera es una operación de servidor; la segunda es
+ * contenido de aplicación. Separadas en dos métodos, no dos clases — no
+ * hay todavía un segundo consumidor que justifique más que eso.
  */
 class TenantsCrear extends Command
 {
+    private const CONEXION = 'mysql_tenant_admin';
+
     protected $signature = 'tenants:crear
         {key : Clave del tenant, minúsculas/números/guión bajo}
         {--perfil= : Clave de un Perfil en config/platform/perfiles.php}
@@ -28,11 +44,6 @@ class TenantsCrear extends Command
 
     protected $description = 'Crea un tenant nuevo: DB + migraciones + seeders base + Perfil opcional + datos demo opcionales';
 
-    /**
-     * Mapeo perfil -> Escenario Demo. Deliberadamente un array simple acá,
-     * no una propiedad más en Perfil — todavía es un único consumidor
-     * (este comando), no hay evidencia de que amerite vivir en el DTO.
-     */
     private const ESCENARIOS_DEMO = [
         'odontologia' => \Database\Seeders\OdontologiaDemoSeeder::class,
         'medicina_laboral' => \Database\Seeders\MedicinaLaboralDemoSeeder::class,
@@ -48,15 +59,26 @@ class TenantsCrear extends Command
             return self::FAILURE;
         }
 
+        $database = 'historias_' . $key;
+        $originalDefault = Config::get('database.default');
+        $originalDatabase = Config::get('database.connections.' . self::CONEXION . '.database');
+
+        Config::set('database.default', self::CONEXION);
+        $this->conectarComo($originalDatabase);
+
         if (Tenant::where('tenant_key', $key)->exists()) {
             $this->error("Ya existe un tenant con la clave '{$key}'.");
+            $this->restaurarDefault($originalDefault);
             return self::FAILURE;
         }
 
-        $database = 'historias_' . $key;
-        $originalDatabase = Config::get('database.connections.mysql.database');
-
-        DB::statement("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        try {
+            $this->crearBaseDeDatos($database);
+        } catch (Throwable $e) {
+            $this->error("Falló la creación de la base '{$database}': {$e->getMessage()}");
+            $this->restaurarDefault($originalDefault);
+            return self::FAILURE;
+        }
 
         $tenant = Tenant::create([
             'tenant_key' => $key,
@@ -64,50 +86,18 @@ class TenantsCrear extends Command
             'status' => 'en_migracion',
         ]);
 
-        Config::set('database.connections.mysql.database', $database);
-        DB::purge('mysql');
-        DB::reconnect('mysql');
-
         try {
-            Artisan::call('migrate', ['--force' => true]);
-            $this->line(Artisan::output());
-
-            Artisan::call('db:seed', ['--force' => true]);
-            $this->line(Artisan::output());
-
-            Artisan::call('db:seed', ['--class' => 'CapabilityStatesSeeder', '--force' => true]);
-
-            $perfilKey = $this->option('perfil');
-            if ($perfilKey) {
-                $perfil = config('perfiles.' . $perfilKey);
-
-                if ($perfil) {
-                    app(ComponenteInstallerContract::class)->instalar($perfil->componentes);
-                    $this->info("Perfil '{$perfilKey}' aplicado: " . implode(', ', $perfil->componentes ?: ['(sin componentes opcionales)']));
-
-                    if ($this->option('con-datos-demo') && isset(self::ESCENARIOS_DEMO[$perfilKey])) {
-                        Artisan::call('db:seed', ['--class' => self::ESCENARIOS_DEMO[$perfilKey], '--force' => true]);
-                        $this->info("Escenario demo de '{$perfilKey}' sembrado.");
-                    }
-                } else {
-                    $this->warn("Perfil '{$perfilKey}' no existe en config/platform/perfiles.php — tenant creado sin componentes opcionales.");
-                }
-            }
+            $this->provisionarTenant($perfilKey = $this->option('perfil'), (bool) $this->option('con-datos-demo'), $database);
         } catch (Throwable $e) {
-            Config::set('database.connections.mysql.database', $originalDatabase);
-            DB::purge('mysql');
-            DB::reconnect('mysql');
-
+            $this->conectarComo($originalDatabase);
             $tenant->update(['status' => 'error', 'last_migration_status' => 'error']);
-            $this->error("Falló la creación de '{$key}': {$e->getMessage()}");
+            $this->error("Falló el provisioning de '{$key}': {$e->getMessage()}");
+            $this->restaurarDefault($originalDefault);
 
             return self::FAILURE;
         }
 
-        Config::set('database.connections.mysql.database', $originalDatabase);
-        DB::purge('mysql');
-        DB::reconnect('mysql');
-
+        $this->conectarComo($originalDatabase);
         $tenant->update([
             'status' => 'activo',
             'last_migration_at' => now(),
@@ -116,7 +106,67 @@ class TenantsCrear extends Command
         ]);
 
         $this->info("Tenant '{$key}' creado correctamente ({$database}).");
+        $this->restaurarDefault($originalDefault);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Database Provisioning: crear la base física. Nada de contenido
+     * todavía — es responsabilidad de provisionarTenant().
+     */
+    private function crearBaseDeDatos(string $database): void
+    {
+        DB::connection(self::CONEXION)->statement(
+            "CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+        );
+    }
+
+    /**
+     * Tenant Provisioning: contenido de aplicación dentro de una base que
+     * ya existe — migraciones, seeders base, Perfil, datos demo.
+     */
+    private function provisionarTenant(?string $perfilKey, bool $conDatosDemo, string $database): void
+    {
+        $this->conectarComo($database);
+
+        Artisan::call('migrate', ['--force' => true]);
+        $this->line(Artisan::output());
+
+        Artisan::call('db:seed', ['--force' => true]);
+        $this->line(Artisan::output());
+
+        Artisan::call('db:seed', ['--class' => 'CapabilityStatesSeeder', '--force' => true]);
+
+        if (! $perfilKey) {
+            return;
+        }
+
+        $perfil = config('perfiles.' . $perfilKey);
+
+        if (! $perfil) {
+            $this->warn("Perfil '{$perfilKey}' no existe en config/platform/perfiles.php — tenant creado sin componentes opcionales.");
+            return;
+        }
+
+        app(ComponenteInstallerContract::class)->instalar($perfil->componentes);
+        $this->info("Perfil '{$perfilKey}' aplicado: " . implode(', ', $perfil->componentes ?: ['(sin componentes opcionales)']));
+
+        if ($conDatosDemo && isset(self::ESCENARIOS_DEMO[$perfilKey])) {
+            Artisan::call('db:seed', ['--class' => self::ESCENARIOS_DEMO[$perfilKey], '--force' => true]);
+            $this->info("Escenario demo de '{$perfilKey}' sembrado.");
+        }
+    }
+
+    private function conectarComo(string $database): void
+    {
+        Config::set('database.connections.' . self::CONEXION . '.database', $database);
+        DB::purge(self::CONEXION);
+        DB::reconnect(self::CONEXION);
+    }
+
+    private function restaurarDefault(?string $originalDefault): void
+    {
+        Config::set('database.default', $originalDefault);
     }
 }

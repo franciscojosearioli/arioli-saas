@@ -1272,6 +1272,23 @@ Decisión de Francisco, importante: no se trata de poblar la base — se trata d
 
 No es un pendiente — es un requisito de seguridad que bloquea el inicio de 6.3. `tenants:crear` (6.1) queda exceptuado porque es manual, un tenant a la vez, bajo control humano directo — el riesgo real aparece recién con un job desatendido de borrado automático.
 
+### Gate G-01 — RESUELTO
+
+**Validación experimental previa (no asumida)**, con un usuario descartable (`g01_test_user`) y un grant candidato — `CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON \`historias_%\`.*` —, ambas preguntas confirmadas con evidencia real y sin sorpresas:
+
+1. **`CREATE DATABASE`/`DROP DATABASE historias_xxx`** funcionan con exactamente ese grant — no hace falta ningún privilegio administrativo de servidor (`CREATE`/`DROP` alcanzan también a nivel de base de datos cuando el patrón del grant cubre el nombre).
+2. **El flujo completo** (`CREATE DATABASE → migrate → seed → Perfil → datos demo`) corrió de punta a punta con `tenants:crear g01_full_test --perfil=odontologia --con-datos-demo` usando *solo* ese usuario — cero privilegios adicionales necesarios.
+
+**Implementación real** (usuario descartable borrado, reemplazado por el definitivo):
+
+- Usuario de producción `historias_tenant_admin`@`%`, con exactamente el grant validado arriba. Sin `SUPER`, `FILE`, `PROCESS`, `SHUTDOWN`, `RELOAD`, `CREATE USER`, `GRANT OPTION`, replicación, administración de roles ni de variables de servidor — ninguno resultó necesario.
+- Nueva conexión Eloquent `mysql_tenant_admin` en `config/database.php`, con credenciales propias (`TENANT_ADMIN_DB_USERNAME`/`TENANT_ADMIN_DB_PASSWORD` en `.env`) — **nunca** comparte la conexión `mysql` (la de `saas_user`, con privilegios de toda la infraestructura del servidor).
+- **Separación conceptual aplicada dentro de `TenantsCrear`** (dos métodos, no dos clases — un único consumidor no amerita más): `crearBaseDeDatos()` (Database Provisioning — la base física) vs. `provisionarTenant()` (Tenant Provisioning — migraciones, seeders, Perfil, datos demo). Hoy usan el mismo usuario MySQL; la separación es de responsabilidad en el código, no de credenciales — se revisará si conviene separarlas también a nivel de usuario si `DemoInstance` (Etapa 6.3) lo exige.
+- Detalle de implementación no trivial: ni el modelo `Tenant` ni los installers de Platform (`ComponenteInstaller`, `CapabilityInstaller`, `FieldVisibilityInstaller`...) fijan una conexión explícita — todos dependen de la conexión *default* de Eloquent. `TenantsCrear` reapunta temporalmente `database.default` a `mysql_tenant_admin` durante toda su ejecución (restaurado al finalizar), replicando sobre la nueva conexión el mismo mecanismo que la versión anterior aplicaba sobre `mysql`.
+- **Revalidado end-to-end en producción** con el usuario real (no el descartable): `tenants:crear g01_real_test --perfil=salud_mental --con-datos-demo` corrió sin overrides de entorno (a diferencia de la prueba experimental, que forzaba `DB_USERNAME`/`DB_PASSWORD` — acá la conexión ya usa `historias_tenant_admin` por configuración). Confirmado: 68 migraciones, seeders base, componente `salud_mental` instalado, dato demo de Laura Fernández presente. Limpieza posterior: base dropeada con el propio `historias_tenant_admin` (dentro de su grant) y fila de `tenants` borrada.
+
+Con esto resuelto, Etapa 6.3 (ciclo de vida de `DemoInstance`) queda desbloqueada.
+
 ## Corte — Etapa 6 pausa acá
 
 Con 6.1 (provisión por código) y 6.2 (Escenarios Demo coherentes) validados de punta a punta, el resto de Etapa 6 cambia de naturaleza: deja de ser arquitectura/producto y pasa a ser infraestructura y operaciones (credenciales, jobs automáticos, tolerancia a fallos). Se cierra la sesión acá a propósito, no por agotamiento del trabajo.
