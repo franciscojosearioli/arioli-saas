@@ -1247,6 +1247,14 @@ Decisión de Francisco, importante: no se trata de poblar la base — se trata d
 
 **Validado con un tenant real completo, creado y borrado**: `tenants:crear demo_odonto_test --perfil=odontologia --con-datos-demo` → 5 pacientes, 2 profesionales con firma, la narrativa de María González verificada exactamente (pieza 26: `cariada` en la fecha de hace 3 meses → `obturada` hoy, con las observaciones correctas), 8 piezas no-`sana` distribuidas en el tenant (no una base plana). `capability_states` del tenant nuevo mostró **solo** `odontologia` como extra — ninguna mezcla con Medicina Laboral ni Salud Mental, resolviendo directamente el problema original ("el demo me está mostrando todo").
 
+## Gate G-01 — Automatización de ciclo de vida (formal, bloqueante)
+
+**Ningún proceso automático que cree o elimine tenants podrá implementarse utilizando un usuario MySQL con privilegios globales (`GRANT ALL ON *.*`). Antes de Etapa 6.3 deberá existir un usuario dedicado con permisos limitados exclusivamente al patrón `historias_%` (o el esquema que se defina), de modo que un error en la automatización no pueda afectar bases de datos ajenas a Historias Clínicas.**
+
+No es un pendiente — es un requisito de seguridad que bloquea el inicio de 6.3. `tenants:crear` (6.1) queda exceptuado porque es manual, un tenant a la vez, bajo control humano directo — el riesgo real aparece recién con un job desatendido de borrado automático.
+
 ## Corte — Etapa 6 pausa acá
 
-Por instrucción explícita: **Etapa 6.3 (expiración automática) no puede empezar hasta que exista un usuario de MySQL dedicado y acotado a `historias_%`** — gate explícito, no se salta. 6.4 (selector público) y 6.5 (wizard comercial) quedan después de eso.
+Con 6.1 (provisión por código) y 6.2 (Escenarios Demo coherentes) validados de punta a punta, el resto de Etapa 6 cambia de naturaleza: deja de ser arquitectura/producto y pasa a ser infraestructura y operaciones (credenciales, jobs automáticos, tolerancia a fallos). Se cierra la sesión acá a propósito, no por agotamiento del trabajo.
+
+**Próxima sesión, en orden**: resolver Gate G-01 (usuario MySQL acotado) → 6.3 (expiración automática 24hs) → 6.4 (selector público de demo) → 6.5 (wizard de alta para clientes reales, perfil + "Personalizado").
