@@ -19,11 +19,23 @@ services:
       - "443:443"
     volumes:
       - ./src:/var/www/html:ro
+      - ./apps/loteos:/var/www/loteos:ro
+      - ./apps/historias-clinicas:/var/www/historias-clinicas:ro
+      - ./apps/tallerpro:/var/www/tallerpro:ro
+      - ./apps/turnos:/var/www/turnos:ro
+      - ./apps/subastas:/var/www/subastas:ro
+      - ./apps/inmobiliarias:/var/www/inmobiliarias:ro
       - ./docker/nginx/templates:/etc/nginx/templates:ro
     environment:
       - NGINX_ENVSUBST_TEMPLATE_SUFFIX=.template
     depends_on:
       - app
+      - loteos_app
+      - historias_app
+      - tallerpro_app
+      - turnos_app
+      - subastas_app
+      - inmobiliarias_app
     networks:
       - saas_network
     restart: unless-stopped
@@ -50,9 +62,9 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MAIL_HOST=mailpit
-      - MAIL_PORT=1025
-      - TENANCY_CENTRAL_DOMAINS=${TENANCY_CENTRAL_DOMAINS:-admin.127.0.0.1.nip.io}
+      - MAIL_HOST=${MAIL_HOST:-mailpit}
+      - MAIL_PORT=${MAIL_PORT:-1025}
+      - TENANCY_CENTRAL_DOMAINS=${TENANCY_CENTRAL_DOMAINS}
     depends_on:
       mysql:
         condition: service_healthy
@@ -88,6 +100,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_DATABASE:-saas_central}
@@ -119,6 +132,249 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  loteos_app:
+    build:
+      context: ./apps/loteos
+      dockerfile: Dockerfile
+    container_name: saas_loteos
+    volumes:
+      - ./apps/loteos:/var/www/html
+      - ./apps/loteos/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${LOTEOS_APP_KEY}
+      - APP_URL=http://loteos.internal
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=loteos_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-http://cliente.127.0.0.1.nip.io}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-http://127.0.0.1.nip.io}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  historias_app:
+    build:
+      context: ./apps/historias-clinicas
+      dockerfile: Dockerfile
+    container_name: saas_historias
+    volumes:
+      - ./apps/historias-clinicas:/var/www/html
+      - ./apps/historias-clinicas/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${HISTORIAS_APP_KEY}
+      - APP_URL=http://historias-clinicas.internal
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=historias_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-http://cliente.127.0.0.1.nip.io}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-http://127.0.0.1.nip.io}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  tallerpro_app:
+    build:
+      context: ./apps/tallerpro
+      dockerfile: Dockerfile
+    container_name: saas_tallerpro
+    volumes:
+      - ./apps/tallerpro:/var/www/html
+      - ./apps/tallerpro/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${TALLERPRO_APP_KEY}
+      - APP_URL=http://tallerpro.internal
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=tallerpro_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-http://cliente.127.0.0.1.nip.io}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-http://127.0.0.1.nip.io}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  turnos_app:
+    build:
+      context: ./apps/turnos
+      dockerfile: Dockerfile
+    container_name: saas_turnos
+    volumes:
+      - ./apps/turnos:/var/www/html
+      - ./apps/turnos/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${TURNOS_APP_KEY}
+      - APP_URL=http://turnos.internal
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=turnos_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-http://cliente.127.0.0.1.nip.io}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-http://127.0.0.1.nip.io}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  subastas_app:
+    build:
+      context: ./apps/subastas
+      dockerfile: Dockerfile
+    container_name: saas_subastas
+    volumes:
+      - ./apps/subastas:/var/www/html
+      - ./apps/subastas/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${SUBASTAS_APP_KEY}
+      - APP_URL=http://subastas.internal
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=subastas_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-http://cliente.127.0.0.1.nip.io}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-http://127.0.0.1.nip.io}
+      - REVERB_APP_ID=subastas
+      - REVERB_APP_KEY=${SUBASTAS_REVERB_APP_KEY}
+      - REVERB_APP_SECRET=${SUBASTAS_REVERB_APP_SECRET}
+      - REVERB_HOST=subastas_reverb
+      - REVERB_PORT=8080
+      - REVERB_SCHEME=http
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  inmobiliarias_app:
+    build:
+      context: ./apps/inmobiliarias
+      dockerfile: Dockerfile
+    container_name: saas_inmobiliarias
+    volumes:
+      - ./apps/inmobiliarias:/var/www/html
+      - ./apps/inmobiliarias/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${INMOBILIARIAS_APP_KEY}
+      - APP_URL=http://inmobiliarias.internal
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=inmobiliarias_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - TENANCY_CENTRAL_DOMAINS=inmobiliarias.internal,${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-http://cliente.127.0.0.1.nip.io}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-http://127.0.0.1.nip.io}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
 
   mailpit:
     image: axllent/mailpit:latest

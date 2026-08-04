@@ -1,0 +1,649 @@
+version: '3.9'
+
+networks:
+  saas_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+
+services:
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: saas_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./apps/loteos:/var/www/loteos:ro
+      - ./apps/historias-clinicas:/var/www/historias-clinicas:ro
+      - ./apps/tallerpro:/var/www/tallerpro:ro
+      - ./apps/turnos:/var/www/turnos:ro
+      - ./apps/subastas:/var/www/subastas:ro
+      - ./apps/chatia:/var/www/chatia:ro
+      - ./apps/inmobiliarias:/var/www/inmobiliarias:ro
+      - ./docker/nginx/templates-prod:/etc/nginx/templates:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    environment:
+      - NGINX_ENVSUBST_TEMPLATE_SUFFIX=.template
+    depends_on:
+      - app
+      - loteos_app
+      - historias_app
+      - tallerpro_app
+      - turnos_app
+      - subastas_app
+      - chatia_app
+      - inmobiliarias_app
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: saas_app
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-saas_central}
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TENANCY_CENTRAL_DOMAINS=${TENANCY_CENTRAL_DOMAINS}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: saas_scheduler
+    command: >
+      sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    volumes:
+      - ./src:/var/www/html
+    environment:
+      - APP_ENV=production
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    depends_on:
+      - app
+      - redis
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  horizon:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: saas_horizon
+    command: php artisan horizon
+    volumes:
+      - ./src:/var/www/html
+    environment:
+      - APP_ENV=production
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    depends_on:
+      - app
+      - redis
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  mysql:
+    image: mysql:8.0
+    container_name: saas_mysql
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE:-saas_central}
+      - MYSQL_USER=${DB_USERNAME:-saas_user}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  redis:
+    image: redis:7-alpine
+    container_name: saas_redis
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  loteos_app:
+    build:
+      context: ./apps/loteos
+      dockerfile: Dockerfile
+    container_name: saas_loteos
+    volumes:
+      - ./apps/loteos:/var/www/html
+      - ./apps/loteos/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${LOTEOS_APP_KEY}
+      - APP_URL=https://loteos.arioli.dev
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=loteos_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  historias_app:
+    build:
+      context: ./apps/historias-clinicas
+      dockerfile: Dockerfile
+    container_name: saas_historias
+    volumes:
+      - ./apps/historias-clinicas:/var/www/html
+      - ./apps/historias-clinicas/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${HISTORIAS_APP_KEY}
+      - APP_URL=https://clinica.arioli.dev
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=historias_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  historias_scheduler:
+    build:
+      context: ./apps/historias-clinicas
+      dockerfile: Dockerfile
+    container_name: saas_historias_scheduler
+    command: >
+      sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    volumes:
+      - ./apps/historias-clinicas:/var/www/html
+      - ./apps/historias-clinicas/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${HISTORIAS_APP_KEY}
+      - APP_URL=https://clinica.arioli.dev
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=historias_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  tallerpro_app:
+    build:
+      context: ./apps/tallerpro
+      dockerfile: Dockerfile
+    container_name: saas_tallerpro
+    volumes:
+      - ./apps/tallerpro:/var/www/html
+      - ./apps/tallerpro/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${TALLERPRO_APP_KEY}
+      - APP_URL=https://servis.arioli.dev
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=tallerpro_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  turnos_app:
+    build:
+      context: ./apps/turnos
+      dockerfile: Dockerfile
+    container_name: saas_turnos
+    volumes:
+      - ./apps/turnos:/var/www/html
+      - ./apps/turnos/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${TURNOS_APP_KEY}
+      - APP_URL=https://turnos.arioli.dev
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=turnos_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  subastas_app:
+    build:
+      context: ./apps/subastas
+      dockerfile: Dockerfile
+    container_name: saas_subastas
+    volumes:
+      - ./apps/subastas:/var/www/html
+      - ./apps/subastas/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${SUBASTAS_APP_KEY}
+      - APP_URL=https://subastas.arioli.dev
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=subastas_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+      - REVERB_APP_ID=subastas
+      - REVERB_APP_KEY=${SUBASTAS_REVERB_APP_KEY}
+      - REVERB_APP_SECRET=${SUBASTAS_REVERB_APP_SECRET}
+      - REVERB_HOST=subastas_reverb
+      - REVERB_PORT=8080
+      - REVERB_SCHEME=http
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  chatia_app:
+    build:
+      context: ./apps/chatia
+      dockerfile: Dockerfile
+    container_name: saas_chatia
+    volumes:
+      - ./apps/chatia:/var/www/html
+      - ./apps/chatia/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${CHATIA_APP_KEY}
+      - APP_URL=https://chatia.arioli.dev
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=chatia_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  # Servidor WebSocket dedicado (Módulo 3 — pujas en tiempo real, ver
+  # propuesta_subastas_judiciales.pdf §3). Corre `reverb:start` como proceso
+  # de larga duración, separado del contenedor PHP-FPM que atiende HTTP.
+  subastas_reverb:
+    build:
+      context: ./apps/subastas
+      dockerfile: Dockerfile
+    container_name: saas_subastas_reverb
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    volumes:
+      - ./apps/subastas:/var/www/html
+      - ./apps/subastas/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${SUBASTAS_APP_KEY}
+      - APP_URL=https://subastas.arioli.dev
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=subastas_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REVERB_APP_ID=subastas
+      - REVERB_APP_KEY=${SUBASTAS_REVERB_APP_KEY}
+      - REVERB_APP_SECRET=${SUBASTAS_REVERB_APP_SECRET}
+      - REVERB_HOST=0.0.0.0
+      - REVERB_PORT=8080
+      - REVERB_SCHEME=http
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  inmobiliarias_app:
+    build:
+      context: ./apps/inmobiliarias
+      dockerfile: Dockerfile
+    container_name: saas_inmobiliarias
+    volumes:
+      - ./apps/inmobiliarias:/var/www/html
+      - ./apps/inmobiliarias/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${INMOBILIARIAS_APP_KEY}
+      - APP_URL=https://inmobiliarias.arioli.dev
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=inmobiliarias_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - TENANCY_CENTRAL_DOMAINS=inmobiliarias.internal,${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  inmobiliarias_scheduler:
+    build:
+      context: ./apps/inmobiliarias
+      dockerfile: Dockerfile
+    container_name: saas_inmobiliarias_scheduler
+    command: >
+      sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    volumes:
+      - ./apps/inmobiliarias:/var/www/html
+      - ./apps/inmobiliarias/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${INMOBILIARIAS_APP_KEY}
+      - APP_URL=https://inmobiliarias.arioli.dev
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=inmobiliarias_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  inmobiliarias_horizon:
+    build:
+      context: ./apps/inmobiliarias
+      dockerfile: Dockerfile
+    container_name: saas_inmobiliarias_horizon
+    command: php artisan horizon
+    volumes:
+      - ./apps/inmobiliarias:/var/www/html
+      - ./apps/inmobiliarias/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${INMOBILIARIAS_APP_KEY}
+      - DB_HOST=mysql
+      - DB_DATABASE=inmobiliarias_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
+
+  # Cierre automático de subastas vencidas + extensión del "minuto de ley"
+  # (Módulos 3-4, ver propuesta_subastas_judiciales.pdf §2.1).
+  subastas_scheduler:
+    build:
+      context: ./apps/subastas
+      dockerfile: Dockerfile
+    container_name: saas_subastas_scheduler
+    command: >
+      sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    volumes:
+      - ./apps/subastas:/var/www/html
+      - ./apps/subastas/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${SUBASTAS_APP_KEY}
+      - APP_URL=https://subastas.arioli.dev
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=subastas_default
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - CACHE_STORE=redis
+      - SAAS_API_URL=http://nginx/api/license/validate
+      - SAAS_VERSION_URL=http://nginx/api/app/version
+      - SAAS_UPDATE_URL=http://nginx/api/app/update
+      - SAAS_INFO_URL=http://nginx/api/license/info
+      - SAAS_API_TOKEN=${API_LICENSE_SECRET}
+      - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
+      - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
+      - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+    extra_hosts:
+      - "mail.arioli.dev:host-gateway"
