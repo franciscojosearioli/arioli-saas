@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# bases sqlite de tenants creados en tests (config/tenancy.php prefix)
+/database/inmobiliarias_*
