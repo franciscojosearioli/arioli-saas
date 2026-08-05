@@ -2,16 +2,69 @@
     <div class="max-w-xl mx-auto sm:px-6 lg:px-8 space-y-6">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Configuración</h2>
 
+        @if (session('status'))
+            <div class="p-3 rounded-md bg-green-50 border border-green-200 text-sm text-green-800">{{ session('status') }}</div>
+        @endif
+
+        @if (session('error'))
+            <div class="p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-800">{{ session('error') }}</div>
+        @endif
+
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 space-y-4">
+            <div>
+                <h3 class="font-medium text-gray-900">Cuentas conectadas (§09/§14)</h3>
+                <p class="text-xs text-gray-500 mt-1">
+                    Conectá la Página de Facebook de la inmobiliaria para publicar ahí — si tiene una cuenta profesional de Instagram vinculada, se conecta sola en el mismo paso.
+                </p>
+            </div>
+
+            @foreach (['facebook' => 'Facebook', 'instagram' => 'Instagram'] as $canal => $etiqueta)
+                @php $cuenta = $cuentasConectadas->get($canal); @endphp
+
+                <div class="flex items-center justify-between gap-3 border border-gray-200 rounded-md p-3">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ $etiqueta }}</p>
+
+                        @if ($cuenta)
+                            <p class="text-xs text-gray-500">{{ $cuenta->external_account_name ?? $cuenta->external_account_id }}</p>
+
+                            @if ($cuenta->requiereReconexion())
+                                <span class="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">Requiere reconexión</span>
+                            @else
+                                <span class="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Conectada</span>
+                            @endif
+                        @else
+                            <p class="text-xs text-gray-500">
+                                {{ $canal === 'instagram' ? 'Se conecta junto con Facebook si la Página tiene una cuenta profesional vinculada.' : 'No conectada.' }}
+                            </p>
+                        @endif
+                    </div>
+
+                    @if ($cuenta)
+                        <form method="POST" action="{{ route('configuracion.cuentas-conectadas.desconectar', $cuenta) }}" onsubmit="return confirm('¿Desconectar {{ $etiqueta }}? Se van a dejar de publicar cambios ahí.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-sm text-red-600 hover:text-red-800 underline">Desconectar</button>
+                        </form>
+                    @elseif ($canal === 'facebook')
+                        <a href="{{ route('configuracion.facebook.conectar') }}" class="inline-flex items-center px-3 py-1.5 bg-gray-800 text-white text-xs font-medium rounded-md hover:bg-gray-700">
+                            Conectar Facebook
+                        </a>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+
         <form wire:submit="guardar" class="space-y-6">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 space-y-4">
-                <h3 class="font-medium text-gray-900">Perfil público (§08 — marketplace)</h3>
+                <h3 class="font-medium text-gray-900">Storefront público (§08)</h3>
 
                 <div>
                     <x-input-label for="nombre_comercial" value="Nombre comercial" />
                     <x-text-input id="nombre_comercial" type="text" class="mt-1 block w-full" wire:model="nombre_comercial" placeholder="ej. Edisur Inmobiliaria" />
                     <x-input-error :messages="$errors->get('nombre_comercial')" class="mt-1" />
                     <p class="text-xs text-gray-500 mt-1">
-                        Sin esto cargado, todavía no hay un perfil público en el marketplace para esta inmobiliaria.
+                        Se muestra en la home pública de tu subdominio y en el título de la página.
                     </p>
                 </div>
 

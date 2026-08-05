@@ -32,6 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // dentro del contexto de cada tenant (tenants:run de Stancl), no
         // contra la conexión default (la base landlord no tiene esa tabla).
         $schedule->command('tenants:run', ['publicaciones:sincronizar'])->everyMinute()->withoutOverlapping();
+
+        // §09 Fase 4: chequeo diario de vencimiento de CuentaConectada —
+        // igual que arriba, por-tenant vía tenants:run (cuentas_conectadas
+        // es una tabla por-tenant).
+        $schedule->command('tenants:run', ['cuentas-conectadas:revisar-vencimientos'])->daily()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

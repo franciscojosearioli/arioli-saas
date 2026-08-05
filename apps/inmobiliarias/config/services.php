@@ -35,4 +35,23 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Meta (Facebook + Instagram) — §09 Fase 4
+    |--------------------------------------------------------------------------
+    |
+    | Una sola app de Meta for Developers, compartida por todos los
+    | tenants (cada uno conecta su propia Página/cuenta, no su propia
+    | app) — mismo criterio que cualquier integrador multi-tenant real.
+    | 'redirect' no se fija acá: cada tenant tiene su propio subdominio,
+    | así que el controller arma la URL de vuelta en runtime, no una fija
+    | por config.
+    |
+    */
+    'facebook' => [
+        'client_id' => env('META_APP_ID'),
+        'client_secret' => env('META_APP_SECRET'),
+        'graph_version' => env('META_GRAPH_VERSION', 'v19.0'),
+    ],
+
 ];

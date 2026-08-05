@@ -39,6 +39,12 @@ final readonly class ContenidoPublicacion
         public array $caracteristicasDestacadas,
         public ?string $nombreDesarrollo,
         public array $galeria,
+        // Fase 4: el link que van los posts de Facebook/Instagram — se
+        // arma con tenant_route() (helper de Stancl), no route() a secas,
+        // porque esto suele correr desde un comando de consola (el
+        // scheduler), donde route() resolvería la URL con el dominio
+        // central en vez del subdominio real del tenant.
+        public string $storefrontUrl,
     ) {}
 
     public static function fromPropiedad(Propiedad $propiedad): self
@@ -47,6 +53,8 @@ final readonly class ContenidoPublicacion
             ->where('estado', 'abierta')
             ->latest('fecha_inicio')
             ->first();
+
+        $dominio = tenant()->domains()->first()?->domain;
 
         return new self(
             titulo: $propiedad->titulo,
@@ -70,6 +78,7 @@ final readonly class ContenidoPublicacion
             caracteristicasDestacadas: $propiedad->caracteristicas_destacadas ?? [],
             nombreDesarrollo: $propiedad->desarrollo?->nombre,
             galeria: $propiedad->fotos->pluck('url')->all(),
+            storefrontUrl: $dominio ? tenant_route($dominio, 'storefront.propiedad', $propiedad) : route('storefront.propiedad', $propiedad),
         );
     }
 }

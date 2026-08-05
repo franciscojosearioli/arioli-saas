@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Configuracion as ConfiguracionModel;
+use App\Models\CuentaConectada;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -61,6 +62,8 @@ class Configuracion extends Component
 
     public function render()
     {
-        return view('livewire.configuracion');
+        return view('livewire.configuracion', [
+            'cuentasConectadas' => CuentaConectada::all()->keyBy('canal'),
+        ]);
     }
 }

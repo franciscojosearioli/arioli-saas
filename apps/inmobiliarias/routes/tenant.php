@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\OperacionController;
 use App\Http\Controllers\Api\V1\PagoController;
 use App\Http\Controllers\Api\V1\PropiedadController;
 use App\Http\Controllers\Api\V1\PublicacionController;
+use App\Http\Controllers\CuentasConectadasController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StorefrontController;
 use App\Livewire\Catalogo\Constructoras;
@@ -88,6 +89,17 @@ Route::middleware([
         Route::get('/comisiones', Comisiones::class)->name('comisiones');
         Route::get('/caja', Caja::class)->name('caja');
         Route::get('/configuracion', ConfiguracionPage::class)->name('configuracion');
+
+        // Fase 4 (§09) — OAuth Meta, solo Owner/Admin (autorización real
+        // dentro del controller, contra ConfiguracionPolicy).
+        Route::get('/configuracion/conectar/facebook', [CuentasConectadasController::class, 'conectarFacebook'])
+            ->name('configuracion.facebook.conectar');
+        Route::get('/configuracion/facebook/callback', [CuentasConectadasController::class, 'callbackFacebook'])
+            ->name('configuracion.facebook.callback');
+        Route::post('/configuracion/facebook/elegir-pagina', [CuentasConectadasController::class, 'elegirPagina'])
+            ->name('configuracion.facebook.elegir-pagina');
+        Route::delete('/configuracion/cuentas-conectadas/{cuentaConectada}', [CuentasConectadasController::class, 'desconectar'])
+            ->name('configuracion.cuentas-conectadas.desconectar');
     });
 
     require __DIR__.'/auth.php';
