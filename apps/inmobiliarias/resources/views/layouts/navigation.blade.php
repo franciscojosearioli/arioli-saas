@@ -30,6 +30,25 @@
                     <x-nav-link :href="route('leads.index')" :active="request()->routeIs('leads.*')">
                         {{ __('Leads') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('operaciones.index')" :active="request()->routeIs('operaciones.*')">
+                        {{ __('Operaciones') }}
+                    </x-nav-link>
+                    @unless (auth()->user()->hasRole('agente'))
+                        <x-nav-link :href="route('cobranza')" :active="request()->routeIs('cobranza')">
+                            {{ __('Cobranza') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('caja')" :active="request()->routeIs('caja')">
+                            {{ __('Caja') }}
+                        </x-nav-link>
+                    @endunless
+                    <x-nav-link :href="route('comisiones')" :active="request()->routeIs('comisiones')">
+                        {{ __('Comisiones') }}
+                    </x-nav-link>
+                    @can('view', \App\Models\Configuracion::actual())
+                        <x-nav-link :href="route('configuracion')" :active="request()->routeIs('configuracion')">
+                            {{ __('Configuración') }}
+                        </x-nav-link>
+                    @endcan
                 </div>
             </div>
 
@@ -100,6 +119,25 @@
             <x-responsive-nav-link :href="route('leads.index')" :active="request()->routeIs('leads.*')">
                 {{ __('Leads') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('operaciones.index')" :active="request()->routeIs('operaciones.*')">
+                {{ __('Operaciones') }}
+            </x-responsive-nav-link>
+            @unless (auth()->user()->hasRole('agente'))
+                <x-responsive-nav-link :href="route('cobranza')" :active="request()->routeIs('cobranza')">
+                    {{ __('Cobranza') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('caja')" :active="request()->routeIs('caja')">
+                    {{ __('Caja') }}
+                </x-responsive-nav-link>
+            @endunless
+            <x-responsive-nav-link :href="route('comisiones')" :active="request()->routeIs('comisiones')">
+                {{ __('Comisiones') }}
+            </x-responsive-nav-link>
+            @can('view', \App\Models\Configuracion::actual())
+                <x-responsive-nav-link :href="route('configuracion')" :active="request()->routeIs('configuracion')">
+                    {{ __('Configuración') }}
+                </x-responsive-nav-link>
+            @endcan
         </div>
 
         <!-- Responsive Settings Options -->

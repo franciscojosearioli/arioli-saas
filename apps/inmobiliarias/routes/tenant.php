@@ -19,8 +19,14 @@ use App\Http\Controllers\ProfileController;
 use App\Livewire\Catalogo\Constructoras;
 use App\Livewire\Catalogo\Desarrollos;
 use App\Livewire\Catalogo\Propiedades;
+use App\Livewire\Configuracion as ConfiguracionPage;
 use App\Livewire\Crm\Clientes;
 use App\Livewire\Crm\Leads;
+use App\Livewire\Finanzas\Caja;
+use App\Livewire\Finanzas\Cobranza;
+use App\Livewire\Finanzas\Comisiones;
+use App\Livewire\Operaciones\Index as OperacionesIndex;
+use App\Livewire\Operaciones\Show as OperacionesShow;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
@@ -63,6 +69,14 @@ Route::middleware([
         Route::get('/propiedades', Propiedades::class)->name('propiedades.index');
         Route::get('/clientes', Clientes::class)->name('clientes.index');
         Route::get('/leads', Leads::class)->name('leads.index');
+
+        // Fase 2 — Operaciones + Finanzas (§04, §17 Rev. 1.2).
+        Route::get('/operaciones', OperacionesIndex::class)->name('operaciones.index');
+        Route::get('/operaciones/{operacion}', OperacionesShow::class)->name('operaciones.show');
+        Route::get('/cobranza', Cobranza::class)->name('cobranza');
+        Route::get('/comisiones', Comisiones::class)->name('comisiones');
+        Route::get('/caja', Caja::class)->name('caja');
+        Route::get('/configuracion', ConfiguracionPage::class)->name('configuracion');
     });
 
     require __DIR__.'/auth.php';
