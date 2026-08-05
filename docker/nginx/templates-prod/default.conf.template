@@ -665,6 +665,20 @@ server {
     location ~ /\.(?!well-known).* { deny all; }
 }
 
+# marketplace.arioli.dev — servicio decomisionado (Rev. 1.3 del Artifact
+# de Inmobiliarias). Server block propio para que no caiga en el catch-all
+# *.arioli.dev y llegue tráfico ajeno al backend del core.
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name marketplace.arioli.dev marketplace.internal;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    return 410;
+}
+
 # Tenants (wildcard — para futuros sistemas o acceso directo al core)
 server {
     listen 80;
