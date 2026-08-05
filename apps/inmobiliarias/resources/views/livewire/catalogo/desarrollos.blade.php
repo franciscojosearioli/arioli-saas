@@ -129,6 +129,12 @@
                     <x-text-input id="plano_maestro" type="text" class="mt-1 block w-full" wire:model="plano_maestro" />
                     <x-input-error :messages="$errors->get('plano_maestro')" class="mt-1" />
                 </div>
+
+                <div>
+                    <x-input-label value="Polígono general" />
+                    <x-mapa-ubicacion wire-model="ubicacion_wkt" modal="form-desarrollo" :solo-poligono="true" />
+                    <x-input-error :messages="$errors->get('ubicacion_wkt')" class="mt-1" />
+                </div>
             </div>
 
             <div class="mt-6 flex justify-end gap-3">

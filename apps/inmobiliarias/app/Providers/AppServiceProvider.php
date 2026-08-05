@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use App\Models\Constructora;
+use App\Models\Desarrollo;
 use App\Models\FotoPropiedad;
 use App\Models\Propiedad;
 use App\Observers\ConstructoraObserver;
+use App\Observers\DesarrolloObserver;
 use App\Observers\FotoPropiedadObserver;
 use App\Observers\PropiedadObserver;
 use App\Services\License\LicenseClient;
@@ -48,5 +50,6 @@ class AppServiceProvider extends ServiceProvider
         Propiedad::observe(PropiedadObserver::class);
         FotoPropiedad::observe(FotoPropiedadObserver::class);
         Constructora::observe(ConstructoraObserver::class);
+        Desarrollo::observe(DesarrolloObserver::class);
     }
 }

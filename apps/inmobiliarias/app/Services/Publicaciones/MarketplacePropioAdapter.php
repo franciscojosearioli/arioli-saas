@@ -86,7 +86,9 @@ class MarketplacePropioAdapter implements ChannelAdapter
             'servicios' => $contenido->servicios,
             'caracteristicas_destacadas' => $contenido->caracteristicasDestacadas,
             'nombre_desarrollo' => $contenido->nombreDesarrollo,
+            'desarrollo_id' => $contenido->desarrolloId,
             'galeria' => $contenido->galeria,
+            'ubicacion_wkt' => $contenido->ubicacionWkt,
         ];
     }
 }

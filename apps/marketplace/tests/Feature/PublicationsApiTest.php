@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Desarrollo;
 use App\Models\FichaPropiedad;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -78,6 +79,31 @@ class PublicationsApiTest extends TestCase
             ->assertOk();
 
         $this->assertSame('120000.00', $ficha->fresh()->precio);
+    }
+
+    public function test_publicar_una_ficha_vincula_el_desarrollo_ya_sincronizado(): void
+    {
+        $desarrollo = Desarrollo::factory()->create(['tenant_id' => 'demo', 'desarrollo_id' => 5]);
+
+        $respuesta = $this->conToken()->postJson('/api/publications', [
+            'tenant_id' => 'demo', 'propiedad_id' => 42, 'titulo' => 'Lote 12',
+            'moneda' => 'ARS', 'tipo_propiedad' => 'loteo', 'estado' => 'disponible',
+            'desarrollo_id' => 5,
+        ])->assertCreated();
+
+        $ficha = FichaPropiedad::find($respuesta->json('id'));
+        $this->assertSame($desarrollo->id, $ficha->desarrollo_id);
+    }
+
+    public function test_publicar_una_ficha_sin_desarrollo_sincronizado_todavia_no_falla(): void
+    {
+        $this->conToken()->postJson('/api/publications', [
+            'tenant_id' => 'demo', 'propiedad_id' => 42, 'titulo' => 'Lote 12',
+            'moneda' => 'ARS', 'tipo_propiedad' => 'loteo', 'estado' => 'disponible',
+            'desarrollo_id' => 999,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('fichas_propiedad', ['propiedad_id' => 42, 'desarrollo_id' => null]);
     }
 
     public function test_despublicar_una_ficha_la_elimina(): void

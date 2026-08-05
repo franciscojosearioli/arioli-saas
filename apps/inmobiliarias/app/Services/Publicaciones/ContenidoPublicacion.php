@@ -38,7 +38,11 @@ final readonly class ContenidoPublicacion
         public array $servicios,
         public array $caracteristicasDestacadas,
         public ?string $nombreDesarrollo,
+        public ?int $desarrolloId,
         public array $galeria,
+        // WKT (point o polygon, §04) — null en tests/sqlite, ver el guard
+        // de driver en Propiedad::ubicacionComoWkt().
+        public ?string $ubicacionWkt,
     ) {}
 
     public static function fromPropiedad(Propiedad $propiedad): self
@@ -69,7 +73,9 @@ final readonly class ContenidoPublicacion
             servicios: $propiedad->servicios ?? [],
             caracteristicasDestacadas: $propiedad->caracteristicas_destacadas ?? [],
             nombreDesarrollo: $propiedad->desarrollo?->nombre,
+            desarrolloId: $propiedad->desarrollo_id,
             galeria: $propiedad->fotos->pluck('url')->all(),
+            ubicacionWkt: $propiedad->ubicacionComoWkt(),
         );
     }
 }

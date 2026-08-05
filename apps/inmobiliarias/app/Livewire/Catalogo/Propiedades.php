@@ -71,6 +71,8 @@ class Propiedades extends Component
 
     public string $caracteristicas_destacadas = '';
 
+    public string $ubicacion_wkt = '';
+
     public function mount(): void
     {
         $this->authorize('viewAny', Propiedad::class);
@@ -106,6 +108,7 @@ class Propiedades extends Component
             'provincia' => ['nullable', 'string', 'max:100'],
             'ciudad' => ['nullable', 'string', 'max:100'],
             'barrio' => ['nullable', 'string', 'max:100'],
+            'ubicacion_wkt' => ['nullable', 'string', 'regex:/^(POINT\([-\d.\s]+\)|POLYGON\(\([-\d.,\s]+\)\))$/i'],
         ];
     }
 
@@ -152,6 +155,7 @@ class Propiedades extends Component
         $this->barrio = $propiedad->barrio;
         $this->servicios = implode(', ', $propiedad->servicios ?? []);
         $this->caracteristicas_destacadas = implode(', ', $propiedad->caracteristicas_destacadas ?? []);
+        $this->ubicacion_wkt = $propiedad->ubicacionComoWkt() ?? '';
         $this->modalAbierto = true;
     }
 
@@ -160,6 +164,8 @@ class Propiedades extends Component
         $datos = $this->validate();
         $datos['servicios'] = $this->tags($this->servicios);
         $datos['caracteristicas_destacadas'] = $this->tags($this->caracteristicas_destacadas);
+        $wkt = $datos['ubicacion_wkt'];
+        unset($datos['ubicacion_wkt']);
 
         if ($this->editandoId) {
             $propiedad = Propiedad::findOrFail($this->editandoId);
@@ -167,8 +173,14 @@ class Propiedades extends Component
             $propiedad->update($datos);
         } else {
             $this->authorize('create', Propiedad::class);
-            Propiedad::create($datos);
+            $propiedad = Propiedad::create($datos);
         }
+
+        // guardarUbicacion() escribe vía query builder crudo — nunca
+        // dispara el evento `updated` de Eloquent, así que
+        // PropiedadObserver no se entera solo del cambio de geometría.
+        $propiedad->guardarUbicacion($wkt ?: null);
+        $propiedad->dispararSincronizacion();
 
         $this->modalAbierto = false;
         $this->resetForm();
@@ -204,7 +216,7 @@ class Propiedades extends Component
             'editandoId', 'desarrollo_id', 'propietario_id', 'titulo', 'descripcion', 'precio',
             'superficie_cubierta', 'superficie_total', 'ambientes', 'dormitorios', 'banos',
             'cocheras', 'manzana', 'numero_lote', 'direccion', 'provincia', 'ciudad', 'barrio',
-            'servicios', 'caracteristicas_destacadas',
+            'servicios', 'caracteristicas_destacadas', 'ubicacion_wkt',
         ]);
         $this->tipo = 'casa';
         $this->estado = 'disponible';

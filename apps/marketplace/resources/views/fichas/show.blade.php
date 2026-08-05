@@ -78,7 +78,14 @@
                 <p class="text-2xl font-semibold text-indigo-700">{{ $ficha->moneda }} {{ number_format((float) $ficha->precio, 0, ',', '.') }}</p>
             @endif
             @if ($ficha->nombre_desarrollo)
-                <p class="text-sm text-gray-500">Parte de <span class="font-medium text-gray-700">{{ $ficha->nombre_desarrollo }}</span></p>
+                <p class="text-sm text-gray-500">
+                    Parte de
+                    @if ($ficha->desarrollo)
+                        <a href="{{ route('desarrollos.show', $ficha->desarrollo) }}" class="font-medium text-indigo-600 hover:text-indigo-800">{{ $ficha->nombre_desarrollo }}</a>
+                    @else
+                        <span class="font-medium text-gray-700">{{ $ficha->nombre_desarrollo }}</span>
+                    @endif
+                </p>
             @endif
         </aside>
     </div>

@@ -4,6 +4,7 @@ namespace Tests\Feature\Livewire;
 
 use App\Livewire\Catalogo\Desarrollos;
 use App\Models\Constructora;
+use App\Models\Desarrollo;
 use App\Models\User;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -48,5 +49,28 @@ class DesarrollosTest extends TestCase
             ->set('nombre', 'Barrio Los Robles')
             ->call('guardar')
             ->assertForbidden();
+    }
+
+    public function test_rechaza_un_wkt_de_ubicacion_invalido(): void
+    {
+        $this->actingAs($this->usuario('admin'));
+
+        // Solo se prueba el formato inválido acá — un WKT válido dispara
+        // ST_GeomFromText (MySQL) más adelante en guardar(), que no
+        // corre contra el sqlite de los tests (ver guardarUbicacion()).
+        Livewire::test(Desarrollos::class)
+            ->set('nombre', 'Barrio Los Robles')
+            ->set('tipo', 'barrio_cerrado')
+            ->set('ubicacion_wkt', 'POINT(1 2)')
+            ->call('guardar')
+            ->assertHasErrors('ubicacion_wkt');
+    }
+
+    public function test_guardar_ubicacion_rechaza_wkt_invalido_a_nivel_de_modelo(): void
+    {
+        $desarrollo = Desarrollo::factory()->create();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $desarrollo->guardarUbicacion('POINT(1 2)');
     }
 }

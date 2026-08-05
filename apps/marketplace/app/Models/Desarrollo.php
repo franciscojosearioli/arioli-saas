@@ -4,20 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class Desarrollo extends Model
 {
     use HasFactory;
 
-    // 'ubicacion' (GEOMETRY, el polígono general del desarrollo — §08)
-    // queda fuera del fillable a propósito: se escribe vía
-    // guardarUbicacion(), nunca por asignación directa (lección de loteos).
     protected $fillable = [
+        'tenant_id',
+        'desarrollo_id',
         'constructora_id',
+        'slug',
         'nombre',
         'tipo',
         'descripcion',
@@ -27,18 +27,34 @@ class Desarrollo extends Model
         'plano_maestro',
     ];
 
-    public function constructora(): BelongsTo
+    /**
+     * §08: mismo criterio idempotente que FichaPropiedad::publicar() —
+     * (tenant_id, desarrollo_id) identifica una fila única, así que
+     * sincronizar dos veces el mismo desarrollo actualiza en vez de
+     * duplicar.
+     */
+    public static function sincronizar(string $tenantId, int $desarrolloId, array $datos): self
     {
-        return $this->belongsTo(Constructora::class);
+        $desarrollo = static::firstOrNew(['tenant_id' => $tenantId, 'desarrollo_id' => $desarrolloId]);
+        $desarrollo->fill($datos);
+
+        if (! $desarrollo->slug) {
+            $desarrollo->slug = Str::slug($datos['nombre']).'-'.Str::slug($tenantId).'-'.$desarrolloId;
+        }
+
+        $desarrollo->save();
+
+        return $desarrollo;
     }
 
-    public function propiedades(): HasMany
+    public function fichas(): HasMany
     {
-        return $this->hasMany(Propiedad::class);
+        return $this->hasMany(FichaPropiedad::class);
     }
 
-    // Mismo mecanismo que Propiedad::guardarUbicacion() — ver ese método
-    // para el porqué de la revalidación acá.
+    // 'ubicacion' (GEOMETRY, polígono general) queda fuera del fillable a
+    // propósito — mismo motivo que el Desarrollo del lado tenant: nunca
+    // por asignación directa, siempre vía query builder.
     public function guardarUbicacion(?string $wkt): void
     {
         if ($wkt === null || $wkt === '') {
@@ -54,17 +70,9 @@ class Desarrollo extends Model
         static::whereKey($this->id)->update(['ubicacion' => DB::raw("ST_GeomFromText('{$wkt}')")]);
     }
 
-    // Ver el comentario equivalente en Propiedad::ubicacionComoWkt() — el
-    // guard de driver evita que DesarrolloSync rompa en sqlite (tests).
-    public function ubicacionComoWkt(): ?string
-    {
-        if (DB::connection()->getDriverName() !== 'mysql') {
-            return null;
-        }
-
-        return static::whereKey($this->id)->value(DB::raw('ST_AsText(ubicacion)'));
-    }
-
+    // Guard de driver: ST_AsGeoJSON es de MySQL — en sqlite (tests) esto
+    // debe devolver null en vez de romper cualquier test que renderice la
+    // vista de mapa sin geometría real cargada.
     public function ubicacionComoGeoJson(): ?array
     {
         if (DB::connection()->getDriverName() !== 'mysql') {

@@ -31,9 +31,14 @@ class PublicationController extends Controller
 
     public function update(UpdatePublicationRequest $request, FichaPropiedad $publication): JsonResponse
     {
-        $publication->update($request->validated());
+        // No un update() plano: 'desarrollo_id' (se resuelve a la fila
+        // local de `desarrollos`) y 'ubicacion_wkt' no son fillable a
+        // propósito, así que un update() directo los ignoraría en
+        // silencio en cada republicación — publicar() es la única forma
+        // correcta de escribirlos, tanto en alta como en edición.
+        $ficha = FichaPropiedad::publicar($publication->tenant_id, $publication->propiedad_id, $request->validated());
 
-        return response()->json(['id' => (string) $publication->id, 'slug' => $publication->slug]);
+        return response()->json(['id' => (string) $ficha->id, 'slug' => $ficha->slug]);
     }
 
     public function destroy(FichaPropiedad $publication): Response

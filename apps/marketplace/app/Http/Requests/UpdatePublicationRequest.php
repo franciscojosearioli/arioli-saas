@@ -35,7 +35,9 @@ class UpdatePublicationRequest extends FormRequest
             'servicios' => ['nullable', 'array'],
             'caracteristicas_destacadas' => ['nullable', 'array'],
             'nombre_desarrollo' => ['nullable', 'string', 'max:255'],
+            'desarrollo_id' => ['nullable', 'integer'],
             'galeria' => ['nullable', 'array'],
+            'ubicacion_wkt' => ['nullable', 'string', 'regex:/^(POINT\([-\d.\s]+\)|POLYGON\(\([-\d.,\s]+\)\))$/i'],
         ];
     }
 }

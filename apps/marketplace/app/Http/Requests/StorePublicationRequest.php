@@ -39,7 +39,11 @@ class StorePublicationRequest extends FormRequest
             'servicios' => ['nullable', 'array'],
             'caracteristicas_destacadas' => ['nullable', 'array'],
             'nombre_desarrollo' => ['nullable', 'string', 'max:255'],
+            // Id del Desarrollo del lado tenant (la fuente) — se resuelve
+            // a la fila local de `desarrollos` en FichaPropiedad::publicar().
+            'desarrollo_id' => ['nullable', 'integer'],
             'galeria' => ['nullable', 'array'],
+            'ubicacion_wkt' => ['nullable', 'string', 'regex:/^(POINT\([-\d.\s]+\)|POLYGON\(\([-\d.,\s]+\)\))$/i'],
         ];
     }
 }

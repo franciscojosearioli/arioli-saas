@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ConstructoraProfileController;
+use App\Http\Controllers\Api\DesarrolloController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\TenantProfileController;
 use Illuminate\Support\Facades\Route;
@@ -27,4 +28,5 @@ Route::middleware('api.key')->group(function () {
 
     Route::put('tenant-profile', [TenantProfileController::class, 'update']);
     Route::put('constructora-profile', [ConstructoraProfileController::class, 'update']);
+    Route::put('desarrollos', [DesarrolloController::class, 'update']);
 });

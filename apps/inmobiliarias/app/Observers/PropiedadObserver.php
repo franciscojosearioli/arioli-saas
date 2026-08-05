@@ -2,7 +2,6 @@
 
 namespace App\Observers;
 
-use App\Models\OutboxEvent;
 use App\Models\Propiedad;
 
 // §09: "cuando cambia el precio, el estado (vendida/alquilada), una foto
@@ -25,29 +24,11 @@ class PropiedadObserver
             return;
         }
 
-        if (! $propiedad->publicacion()->exists()) {
-            return;
-        }
-
-        OutboxEvent::create([
-            'aggregate_type' => Propiedad::class,
-            'aggregate_id' => $propiedad->id,
-            'evento' => 'PropiedadActualizada',
-            'payload' => ['propiedad_id' => $propiedad->id],
-        ]);
+        $propiedad->dispararSincronizacion();
     }
 
     public function deleted(Propiedad $propiedad): void
     {
-        if (! $propiedad->publicacion()->exists()) {
-            return;
-        }
-
-        OutboxEvent::create([
-            'aggregate_type' => Propiedad::class,
-            'aggregate_id' => $propiedad->id,
-            'evento' => 'PropiedadArchivada',
-            'payload' => ['propiedad_id' => $propiedad->id],
-        ]);
+        $propiedad->dispararSincronizacion('PropiedadArchivada');
     }
 }

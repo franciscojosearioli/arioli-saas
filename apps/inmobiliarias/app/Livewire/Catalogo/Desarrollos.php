@@ -4,6 +4,7 @@ namespace App\Livewire\Catalogo;
 
 use App\Models\Constructora;
 use App\Models\Desarrollo;
+use App\Services\Marketplace\DesarrolloSync;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -38,6 +39,8 @@ class Desarrollos extends Component
 
     public ?string $plano_maestro = null;
 
+    public string $ubicacion_wkt = '';
+
     public function mount(): void
     {
         $this->authorize('viewAny', Desarrollo::class);
@@ -54,6 +57,7 @@ class Desarrollos extends Component
             'ciudad' => ['nullable', 'string', 'max:100'],
             'barrio' => ['nullable', 'string', 'max:100'],
             'plano_maestro' => ['nullable', 'string', 'max:255'],
+            'ubicacion_wkt' => ['nullable', 'string', 'regex:/^POLYGON\(\([-\d.,\s]+\)\)$/i'],
         ];
     }
 
@@ -79,12 +83,15 @@ class Desarrollos extends Component
         $this->ciudad = $desarrollo->ciudad;
         $this->barrio = $desarrollo->barrio;
         $this->plano_maestro = $desarrollo->plano_maestro;
+        $this->ubicacion_wkt = $desarrollo->ubicacionComoWkt() ?? '';
         $this->modalAbierto = true;
     }
 
     public function guardar(): void
     {
         $datos = $this->validate();
+        $wkt = $datos['ubicacion_wkt'];
+        unset($datos['ubicacion_wkt']);
 
         if ($this->editandoId) {
             $desarrollo = Desarrollo::findOrFail($this->editandoId);
@@ -92,8 +99,15 @@ class Desarrollos extends Component
             $desarrollo->update($datos);
         } else {
             $this->authorize('create', Desarrollo::class);
-            Desarrollo::create($datos);
+            $desarrollo = Desarrollo::create($datos);
         }
+
+        // guardarUbicacion() escribe vía query builder crudo — nunca
+        // dispara el evento `updated` de Eloquent, así que el observer
+        // que sincroniza con el marketplace no se entera solo; hay que
+        // avisarle acá explícitamente.
+        $desarrollo->guardarUbicacion($wkt ?: null);
+        DesarrolloSync::sincronizar($desarrollo->fresh());
 
         $this->modalAbierto = false;
         $this->resetForm();
@@ -118,7 +132,7 @@ class Desarrollos extends Component
     {
         $this->reset([
             'editandoId', 'constructora_id', 'nombre', 'tipo', 'descripcion',
-            'provincia', 'ciudad', 'barrio', 'plano_maestro',
+            'provincia', 'ciudad', 'barrio', 'plano_maestro', 'ubicacion_wkt',
         ]);
         $this->tipo = 'loteo';
         $this->resetErrorBag();

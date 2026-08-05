@@ -34,11 +34,4 @@ class PerfilConstructora extends Model
 
         return $perfil;
     }
-
-    // No hay todavía un listado de "Desarrollos a su cargo" (§08) — eso
-    // requiere sincronizar Desarrollo como su propia entidad al
-    // marketplace (hoy solo Propiedad se sincroniza, con el nombre del
-    // desarrollo como texto suelto en la ficha, no una relación real).
-    // Mismo bloqueo que la vista de mapa: se resuelve cuando se sincronice
-    // Desarrollo de verdad, no fabricando una relación que hoy no existe.
 }

@@ -66,6 +66,43 @@ class PropiedadesTest extends TestCase
             ->assertHasErrors(['manzana']);
     }
 
+    public function test_rechaza_un_wkt_de_ubicacion_invalido(): void
+    {
+        $this->actingAs($this->usuario('admin'));
+
+        // Solo el formato — un WKT válido dispara ST_GeomFromText (MySQL)
+        // en guardar(), que no corre contra el sqlite de los tests (ver
+        // Propiedad::guardarUbicacion()).
+        Livewire::test(Propiedades::class)
+            ->set('tipo', 'casa')
+            ->set('titulo', 'Casa con ubicación inválida')
+            ->set('ubicacion_wkt', 'CIRCLE(1 2, 5)')
+            ->call('guardar')
+            ->assertHasErrors('ubicacion_wkt');
+    }
+
+    public function test_guardar_ubicacion_rechaza_wkt_invalido_a_nivel_de_modelo(): void
+    {
+        // Defensa en profundidad: guardarUbicacion() nunca debe confiar
+        // en que el llamador ya validó — reintenta la validación antes
+        // de interpolar el WKT en la raw query (ver el comentario en el
+        // modelo). Nada de esto toca MySQL: falla antes de llegar ahí.
+        $propiedad = Propiedad::factory()->create();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $propiedad->guardarUbicacion('POINT(0 0); DROP TABLE propiedades;--');
+    }
+
+    public function test_guardar_ubicacion_con_valor_vacio_no_falla(): void
+    {
+        $propiedad = Propiedad::factory()->create();
+
+        $propiedad->guardarUbicacion(null);
+        $propiedad->guardarUbicacion('');
+
+        $this->assertNull($propiedad->ubicacionComoWkt());
+    }
+
     public function test_el_filtro_por_estado_solo_muestra_las_propiedades_de_ese_estado(): void
     {
         $this->actingAs($this->usuario('admin'));

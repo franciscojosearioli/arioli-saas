@@ -266,6 +266,12 @@
                     <x-input-label for="caracteristicas_destacadas" value="Características destacadas (separadas por coma)" />
                     <x-text-input id="caracteristicas_destacadas" type="text" class="mt-1 block w-full" wire:model="caracteristicas_destacadas" placeholder="a estrenar, doble ingreso, ..." />
                 </div>
+
+                <div>
+                    <x-input-label value="Ubicación en el mapa" />
+                    <x-mapa-ubicacion wire-model="ubicacion_wkt" modal="form-propiedad" />
+                    <x-input-error :messages="$errors->get('ubicacion_wkt')" class="mt-1" />
+                </div>
             </div>
 
             <div class="mt-6 flex justify-end gap-3">

@@ -14,4 +14,18 @@
             @endif
         </div>
     </div>
+
+    @if ($desarrollos->isNotEmpty())
+        <div class="mt-8">
+            <h2 class="font-medium text-gray-900 mb-3">Desarrollos a su cargo</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                @foreach ($desarrollos as $desarrollo)
+                    <a href="{{ route('desarrollos.show', $desarrollo) }}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                        <div class="font-medium text-gray-900">{{ $desarrollo->nombre }}</div>
+                        <div class="text-sm text-gray-500">{{ collect([$desarrollo->ciudad, $desarrollo->provincia])->filter()->implode(', ') }}</div>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 @endsection
