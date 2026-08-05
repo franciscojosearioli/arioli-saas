@@ -24,7 +24,7 @@ class StorePublicationRequest extends FormRequest
             'precio' => ['nullable', 'numeric', 'min:0'],
             'moneda' => ['required', 'string', 'size:3'],
             'tipo_operacion' => ['nullable', Rule::in(['venta', 'alquiler', 'reserva'])],
-            'tipo_propiedad' => ['required', 'string', 'max:100'],
+            'tipo_propiedad' => ['required', 'string', 'max:30'],
             'estado' => ['required', 'string', 'max:100'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'ciudad' => ['nullable', 'string', 'max:100'],

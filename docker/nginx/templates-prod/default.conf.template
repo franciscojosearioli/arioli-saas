@@ -614,8 +614,7 @@ server {
     location = /robots.txt  { access_log off; log_not_found off; }
 
     location ~ \.php$ {
-        set $upstream_inmobiliarias_app inmobiliarias_app;
-        fastcgi_pass   $upstream_inmobiliarias_app:9000;
+        fastcgi_pass   inmobiliarias_app:9000;
         fastcgi_index  index.php;
         fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
         include        fastcgi_params;
@@ -632,8 +631,8 @@ server {
     root /var/www/inmobiliarias/public;
     index index.php;
 
-    ssl_certificate     /etc/letsencrypt/live/loteos.arioli.dev/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/loteos.arioli.dev/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/inmobiliarias.arioli.dev/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/inmobiliarias.arioli.dev/privkey.pem;
 
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -657,8 +656,7 @@ server {
     location = /robots.txt  { access_log off; log_not_found off; }
 
     location ~ \.php$ {
-        set $upstream_inmobiliarias_app inmobiliarias_app;
-        fastcgi_pass   $upstream_inmobiliarias_app:9000;
+        fastcgi_pass   inmobiliarias_app:9000;
         fastcgi_index  index.php;
         fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
         include        fastcgi_params;
@@ -701,8 +699,7 @@ server {
     location = /robots.txt  { access_log off; log_not_found off; }
 
     location ~ \.php$ {
-        set $upstream_marketplace_app marketplace_app;
-        fastcgi_pass   $upstream_marketplace_app:9000;
+        fastcgi_pass   marketplace_app:9000;
         fastcgi_index  index.php;
         fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
         include        fastcgi_params;

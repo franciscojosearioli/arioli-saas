@@ -28,7 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // §09: el worker de sincronización de Publicaciones — polling de
         // outbox_events, no una cola dedicada todavía (ver el comando).
-        $schedule->command('publicaciones:sincronizar')->everyMinute()->withoutOverlapping();
+        // outbox_events es una tabla por-tenant: hay que correr el comando
+        // dentro del contexto de cada tenant (tenants:run de Stancl), no
+        // contra la conexión default (la base landlord no tiene esa tabla).
+        $schedule->command('tenants:run', ['publicaciones:sincronizar'])->everyMinute()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -23,13 +23,18 @@ return new class extends Migration
             $table->text('descripcion')->nullable();
             $table->decimal('precio', 14, 2)->nullable();
             $table->string('moneda', 3)->default('ARS');
-            $table->string('tipo_operacion')->nullable();
-            $table->string('tipo_propiedad');
+            // Longitudes acotadas (en vez del varchar(255) por defecto):
+            // son datos categóricos cortos y forman parte del índice
+            // compuesto de búsqueda — con utf8mb4, 4 columnas a 255
+            // caracteres superan el máximo de 3072 bytes por índice
+            // de InnoDB.
+            $table->string('tipo_operacion', 30)->nullable();
+            $table->string('tipo_propiedad', 30);
             $table->string('estado');
 
             $table->string('direccion')->nullable();
-            $table->string('ciudad')->nullable();
-            $table->string('provincia')->nullable();
+            $table->string('ciudad', 100)->nullable();
+            $table->string('provincia', 100)->nullable();
             $table->string('barrio')->nullable();
 
             $table->decimal('superficie_cubierta', 10, 2)->nullable();
@@ -50,7 +55,11 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tenant_id', 'propiedad_id']);
-            $table->index(['provincia', 'ciudad', 'tipo_operacion', 'tipo_propiedad']);
+            // Nombre explícito y corto: el auto-generado (columna por
+            // columna) supera el límite de 64 caracteres de MySQL para
+            // identificadores — sqlite nunca lo valida, así que esto no
+            // se detecta corriendo tests localmente.
+            $table->index(['provincia', 'ciudad', 'tipo_operacion', 'tipo_propiedad'], 'fichas_propiedad_busqueda_idx');
         });
     }
 

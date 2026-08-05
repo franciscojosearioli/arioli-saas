@@ -51,3 +51,4 @@ USER appuser
 EXPOSE 9000
 
 ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php-fpm"]
