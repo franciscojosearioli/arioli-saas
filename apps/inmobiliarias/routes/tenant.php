@@ -50,9 +50,11 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
     'license',
 ])->group(function () {
-    Route::get('/', function () {
-        return view('welcome');
-    });
+    // Sin landing pública propia (§08: eso lo resuelve el marketplace) —
+    // el subdominio de un tenant es un panel privado, no una página de
+    // marketing. Antes servía el welcome.blade.php de scaffold de
+    // Breeze sin reemplazar, nunca corregido desde Fase 0.
+    Route::get('/', fn () => redirect()->route('dashboard'));
 
     Route::get('/dashboard', function () {
         return view('dashboard');
