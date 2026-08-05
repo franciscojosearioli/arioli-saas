@@ -8,6 +8,7 @@ networks:
 volumes:
   mysql_data:
   redis_data:
+  meilisearch_data:
 
 services:
 
@@ -25,6 +26,7 @@ services:
       - ./apps/turnos:/var/www/turnos:ro
       - ./apps/subastas:/var/www/subastas:ro
       - ./apps/inmobiliarias:/var/www/inmobiliarias:ro
+      - ./apps/marketplace:/var/www/marketplace:ro
       - ./docker/nginx/templates:/etc/nginx/templates:ro
     environment:
       - NGINX_ENVSUBST_TEMPLATE_SUFFIX=.template
@@ -36,6 +38,7 @@ services:
       - turnos_app
       - subastas_app
       - inmobiliarias_app
+      - marketplace_app
     networks:
       - saas_network
     restart: unless-stopped
@@ -367,11 +370,69 @@ services:
       - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.127.0.0.1.nip.io}
       - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-http://cliente.127.0.0.1.nip.io}
       - SAAS_LANDING_URL=${SAAS_LANDING_URL:-http://127.0.0.1.nip.io}
+      # marketplace_app solo habla FastCGI (php-fpm, puerto 9000) — hay
+      # que pasar por nginx, que resuelve el vhost correcto por Host header.
+      - MARKETPLACE_API_URL=http://nginx
+      - MARKETPLACE_API_HOST=marketplace.internal
+      - MARKETPLACE_API_TOKEN=${MARKETPLACE_API_TOKEN}
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  # §01/§08: servicio de solo-lectura pública, base propia, nunca accede
+  # directo a la base de un tenant — solo se entera de cambios vía la API
+  # interna que llaman los ChannelAdapter de cada tenant.
+  marketplace_app:
+    build:
+      context: ./apps/marketplace
+      dockerfile: Dockerfile
+    container_name: saas_marketplace
+    volumes:
+      - ./apps/marketplace:/var/www/html
+      - ./apps/marketplace/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_KEY=${MARKETPLACE_APP_KEY}
+      - APP_URL=http://marketplace.internal
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=marketplace
+      - DB_USERNAME=${DB_USERNAME:-saas_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY}
+      - MARKETPLACE_API_TOKEN=${MARKETPLACE_API_TOKEN}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
+    networks:
+      - saas_network
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    container_name: saas_meilisearch
+    environment:
+      - MEILI_MASTER_KEY=${MEILISEARCH_KEY}
+      - MEILI_ENV=${APP_ENV:-development}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - meilisearch_data:/meili_data
     networks:
       - saas_network
     restart: unless-stopped

@@ -4,7 +4,6 @@ namespace App\Services\Publicaciones;
 
 use App\Models\PublicacionCanal;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -50,9 +49,18 @@ class MarketplacePropioAdapter implements ChannelAdapter
             throw new RuntimeException('MARKETPLACE_API_URL no está configurado.');
         }
 
-        return Http::baseUrl($url)
+        $cliente = Http::baseUrl($url)
             ->withToken(config('marketplace.api_token'))
             ->timeout(10);
+
+        // Cuando se va por el nginx compartido en vez de un dominio propio
+        // del marketplace, el Host header es lo único que le dice a nginx
+        // qué vhost debe atender la request.
+        if ($host = config('marketplace.api_host')) {
+            $cliente = $cliente->withHeaders(['Host' => $host]);
+        }
+
+        return $cliente;
     }
 
     private function payload(ContenidoPublicacion $contenido): array
@@ -79,7 +87,6 @@ class MarketplacePropioAdapter implements ChannelAdapter
             'caracteristicas_destacadas' => $contenido->caracteristicasDestacadas,
             'nombre_desarrollo' => $contenido->nombreDesarrollo,
             'galeria' => $contenido->galeria,
-            'slug' => Str::slug($contenido->titulo),
         ];
     }
 }

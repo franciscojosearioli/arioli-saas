@@ -140,7 +140,7 @@ class PublicacionesTest extends TestCase
         $this->assertSame('publicada', PublicacionCanal::first()->estado);
     }
 
-    public function test_un_canal_pausado_no_se_sincroniza(): void
+    public function test_un_canal_pausado_sin_haber_publicado_nunca_no_llama_a_nadie(): void
     {
         config(['marketplace.api_url' => 'http://marketplace.test']);
         Http::fake();
@@ -160,5 +160,27 @@ class PublicacionesTest extends TestCase
 
         Http::assertNothingSent();
         $this->assertSame('pausada', $canal->fresh()->estado);
+    }
+
+    public function test_despublicar_un_canal_ya_publicado_le_avisa_al_canal_que_lo_retire(): void
+    {
+        config(['marketplace.api_url' => 'http://marketplace.test']);
+        Http::fake(['marketplace.test/*' => Http::response([], 200)]);
+
+        $propiedad = Propiedad::factory()->create();
+        $publicacion = Publicacion::factory()->create(['propiedad_id' => $propiedad->id]);
+        $canal = $publicacion->activarCanal('marketplace');
+        $canal->update(['external_id' => 'mkt-existente', 'estado' => 'despublicada']);
+
+        OutboxEvent::create([
+            'aggregate_type' => Propiedad::class,
+            'aggregate_id' => $propiedad->id,
+            'evento' => 'PublicacionActualizada',
+        ]);
+
+        Artisan::call('publicaciones:sincronizar');
+
+        Http::assertSent(fn ($request) => $request->method() === 'DELETE'
+            && str_contains($request->url(), 'mkt-existente'));
     }
 }

@@ -57,6 +57,10 @@ class PublicacionController extends Controller
         $this->authorize('update', $publicacionCanal->publicacion);
 
         $publicacionCanal->pausar();
+        // §09: "el tenant la retira temporalmente sin perder el
+        // external_id" — retirarla de verdad del canal es responsabilidad
+        // del worker, no un simple cambio de estado local.
+        $this->encolarSincronizacion($publicacionCanal->publicacion);
 
         return new PublicacionCanalResource($publicacionCanal);
     }

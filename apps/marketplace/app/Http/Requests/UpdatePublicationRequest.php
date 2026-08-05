@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdatePublicationRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'titulo' => ['sometimes', 'required', 'string', 'max:255'],
+            'descripcion' => ['nullable', 'string'],
+            'precio' => ['nullable', 'numeric', 'min:0'],
+            'moneda' => ['sometimes', 'required', 'string', 'size:3'],
+            'tipo_operacion' => ['nullable', Rule::in(['venta', 'alquiler', 'reserva'])],
+            'tipo_propiedad' => ['sometimes', 'required', 'string', 'max:100'],
+            'estado' => ['sometimes', 'required', 'string', 'max:100'],
+            'direccion' => ['nullable', 'string', 'max:255'],
+            'ciudad' => ['nullable', 'string', 'max:100'],
+            'provincia' => ['nullable', 'string', 'max:100'],
+            'barrio' => ['nullable', 'string', 'max:100'],
+            'superficie_cubierta' => ['nullable', 'numeric', 'min:0'],
+            'superficie_total' => ['nullable', 'numeric', 'min:0'],
+            'ambientes' => ['nullable', 'integer', 'min:0', 'max:255'],
+            'dormitorios' => ['nullable', 'integer', 'min:0', 'max:255'],
+            'banos' => ['nullable', 'integer', 'min:0', 'max:255'],
+            'cocheras' => ['nullable', 'integer', 'min:0', 'max:255'],
+            'servicios' => ['nullable', 'array'],
+            'caracteristicas_destacadas' => ['nullable', 'array'],
+            'nombre_desarrollo' => ['nullable', 'string', 'max:255'],
+            'galeria' => ['nullable', 'array'],
+        ];
+    }
+}

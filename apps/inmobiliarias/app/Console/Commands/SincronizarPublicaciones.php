@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\OutboxEvent;
 use App\Models\Propiedad;
+use App\Models\PublicacionCanal;
 use App\Services\Publicaciones\ChannelAdapterRegistry;
 use App\Services\Publicaciones\ContenidoPublicacion;
 use Illuminate\Console\Command;
@@ -50,6 +51,12 @@ class SincronizarPublicaciones extends Command
 
         foreach ($propiedad->publicacion->canales as $canal) {
             if (in_array($canal->estado, ['pausada', 'despublicada'], true)) {
+                // Pausada/despublicada con external_id todavía activo del
+                // lado del canal: hay que decirle que lo retire, no
+                // simplemente ignorarlo — si nunca se llegó a publicar
+                // (sin external_id), no hay nada que retirar.
+                $this->retirarSiHaceFalta($canal, $adapters);
+
                 continue;
             }
 
@@ -59,7 +66,7 @@ class SincronizarPublicaciones extends Command
         $evento->marcarProcesado();
     }
 
-    private function sincronizarCanal($canal, ContenidoPublicacion $contenido, ChannelAdapterRegistry $adapters): void
+    private function sincronizarCanal(PublicacionCanal $canal, ContenidoPublicacion $contenido, ChannelAdapterRegistry $adapters): void
     {
         try {
             $adapter = $adapters->para($canal->canal);
@@ -71,6 +78,19 @@ class SincronizarPublicaciones extends Command
             } else {
                 $canal->marcarPublicada($adapter->publish($canal, $contenido));
             }
+        } catch (Throwable $e) {
+            $canal->marcarError($e->getMessage());
+        }
+    }
+
+    private function retirarSiHaceFalta(PublicacionCanal $canal, ChannelAdapterRegistry $adapters): void
+    {
+        if (! $canal->external_id) {
+            return;
+        }
+
+        try {
+            $adapters->para($canal->canal)->unpublish($canal);
         } catch (Throwable $e) {
             $canal->marcarError($e->getMessage());
         }
