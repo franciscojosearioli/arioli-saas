@@ -79,7 +79,7 @@ class Index extends Component
         $this->modalAbierto = false;
         $this->resetForm();
 
-        $this->redirectRoute('operaciones.show', $operacion, navigate: true);
+        $this->redirectRoute('panel.operaciones.show', $operacion, navigate: true);
     }
 
     public function cerrarModal(): void

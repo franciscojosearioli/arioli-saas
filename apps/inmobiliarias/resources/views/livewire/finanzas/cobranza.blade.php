@@ -36,7 +36,7 @@
                         @forelse ($cuotas as $cuota)
                             <tr wire:key="cuota-{{ $cuota->id }}">
                                 <td class="py-3 pr-4">
-                                    <a href="{{ route('operaciones.show', $cuota->operacion) }}" wire:navigate class="text-indigo-600 hover:text-indigo-900">
+                                    <a href="{{ route('panel.operaciones.show', $cuota->operacion) }}" wire:navigate class="text-indigo-600 hover:text-indigo-900">
                                         {{ $cuota->operacion->propiedad->titulo }}
                                     </a>
                                     <div class="text-gray-500 text-xs">Agente: {{ $cuota->operacion->agente?->name ?? '—' }}</div>

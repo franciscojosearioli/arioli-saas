@@ -65,15 +65,19 @@ Route::middleware([
 
         // Panel de Catálogo + CRM (§04) — la autorización real vive en
         // cada Policy, no acá: estas rutas solo exigen estar logueado.
-        Route::get('/constructoras', Constructoras::class)->name('constructoras.index');
-        Route::get('/desarrollos', Desarrollos::class)->name('desarrollos.index');
-        Route::get('/propiedades', Propiedades::class)->name('propiedades.index');
-        Route::get('/clientes', Clientes::class)->name('clientes.index');
-        Route::get('/leads', Leads::class)->name('leads.index');
+        // Prefijo 'panel.' en el NOMBRE (no en la URI): Route::apiResource
+        // en api/v1 genera 'constructoras.index' etc. para el mismo
+        // recurso — sin este prefijo, route:cache falla en producción por
+        // nombres de ruta duplicados (no se detecta en dev sin cachear).
+        Route::get('/constructoras', Constructoras::class)->name('panel.constructoras.index');
+        Route::get('/desarrollos', Desarrollos::class)->name('panel.desarrollos.index');
+        Route::get('/propiedades', Propiedades::class)->name('panel.propiedades.index');
+        Route::get('/clientes', Clientes::class)->name('panel.clientes.index');
+        Route::get('/leads', Leads::class)->name('panel.leads.index');
 
         // Fase 2 — Operaciones + Finanzas (§04, §17 Rev. 1.2).
-        Route::get('/operaciones', OperacionesIndex::class)->name('operaciones.index');
-        Route::get('/operaciones/{operacion}', OperacionesShow::class)->name('operaciones.show');
+        Route::get('/operaciones', OperacionesIndex::class)->name('panel.operaciones.index');
+        Route::get('/operaciones/{operacion}', OperacionesShow::class)->name('panel.operaciones.show');
         Route::get('/cobranza', Cobranza::class)->name('cobranza');
         Route::get('/comisiones', Comisiones::class)->name('comisiones');
         Route::get('/caja', Caja::class)->name('caja');

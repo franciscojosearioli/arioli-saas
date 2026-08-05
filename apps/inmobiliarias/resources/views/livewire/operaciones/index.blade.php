@@ -69,7 +69,7 @@
                                 <td class="py-3 pr-4 text-gray-600">{{ $operacion->agente?->name ?? '—' }}</td>
                                 <td class="py-3 pr-4 text-gray-600">{{ $operacion->fecha_inicio->format('d/m/Y') }}</td>
                                 <td class="py-3 pr-4 text-right">
-                                    <a href="{{ route('operaciones.show', $operacion) }}" wire:navigate class="text-indigo-600 hover:text-indigo-900">Ver</a>
+                                    <a href="{{ route('panel.operaciones.show', $operacion) }}" wire:navigate class="text-indigo-600 hover:text-indigo-900">Ver</a>
                                 </td>
                             </tr>
                         @empty

@@ -32,7 +32,7 @@
                         @forelse ($comisiones as $comision)
                             <tr wire:key="comision-{{ $comision->id }}">
                                 <td class="py-3 pr-4">
-                                    <a href="{{ route('operaciones.show', $comision->operacion) }}" wire:navigate class="text-indigo-600 hover:text-indigo-900">
+                                    <a href="{{ route('panel.operaciones.show', $comision->operacion) }}" wire:navigate class="text-indigo-600 hover:text-indigo-900">
                                         {{ $comision->operacion->propiedad->titulo }}
                                     </a>
                                 </td>

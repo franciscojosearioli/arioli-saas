@@ -15,22 +15,22 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('constructoras.index')" :active="request()->routeIs('constructoras.*')">
+                    <x-nav-link :href="route('panel.constructoras.index')" :active="request()->routeIs('panel.constructoras.*')">
                         {{ __('Constructoras') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('desarrollos.index')" :active="request()->routeIs('desarrollos.*')">
+                    <x-nav-link :href="route('panel.desarrollos.index')" :active="request()->routeIs('panel.desarrollos.*')">
                         {{ __('Desarrollos') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('propiedades.index')" :active="request()->routeIs('propiedades.*')">
+                    <x-nav-link :href="route('panel.propiedades.index')" :active="request()->routeIs('panel.propiedades.*')">
                         {{ __('Propiedades') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
+                    <x-nav-link :href="route('panel.clientes.index')" :active="request()->routeIs('panel.clientes.*')">
                         {{ __('Clientes') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('leads.index')" :active="request()->routeIs('leads.*')">
+                    <x-nav-link :href="route('panel.leads.index')" :active="request()->routeIs('panel.leads.*')">
                         {{ __('Leads') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('operaciones.index')" :active="request()->routeIs('operaciones.*')">
+                    <x-nav-link :href="route('panel.operaciones.index')" :active="request()->routeIs('panel.operaciones.*')">
                         {{ __('Operaciones') }}
                     </x-nav-link>
                     @unless (auth()->user()->hasRole('agente'))
@@ -104,22 +104,22 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('constructoras.index')" :active="request()->routeIs('constructoras.*')">
+            <x-responsive-nav-link :href="route('panel.constructoras.index')" :active="request()->routeIs('panel.constructoras.*')">
                 {{ __('Constructoras') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('desarrollos.index')" :active="request()->routeIs('desarrollos.*')">
+            <x-responsive-nav-link :href="route('panel.desarrollos.index')" :active="request()->routeIs('panel.desarrollos.*')">
                 {{ __('Desarrollos') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('propiedades.index')" :active="request()->routeIs('propiedades.*')">
+            <x-responsive-nav-link :href="route('panel.propiedades.index')" :active="request()->routeIs('panel.propiedades.*')">
                 {{ __('Propiedades') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
+            <x-responsive-nav-link :href="route('panel.clientes.index')" :active="request()->routeIs('panel.clientes.*')">
                 {{ __('Clientes') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('leads.index')" :active="request()->routeIs('leads.*')">
+            <x-responsive-nav-link :href="route('panel.leads.index')" :active="request()->routeIs('panel.leads.*')">
                 {{ __('Leads') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('operaciones.index')" :active="request()->routeIs('operaciones.*')">
+            <x-responsive-nav-link :href="route('panel.operaciones.index')" :active="request()->routeIs('panel.operaciones.*')">
                 {{ __('Operaciones') }}
             </x-responsive-nav-link>
             @unless (auth()->user()->hasRole('agente'))

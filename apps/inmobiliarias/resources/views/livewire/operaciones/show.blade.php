@@ -19,7 +19,7 @@
 <div class="py-12">
     <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
         <div>
-            <a href="{{ route('operaciones.index') }}" wire:navigate class="text-sm text-indigo-600 hover:text-indigo-900">&larr; Operaciones</a>
+            <a href="{{ route('panel.operaciones.index') }}" wire:navigate class="text-sm text-indigo-600 hover:text-indigo-900">&larr; Operaciones</a>
         </div>
 
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
