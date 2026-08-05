@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Propiedad extends Model
@@ -76,5 +77,15 @@ class Propiedad extends Model
     public function leads(): HasMany
     {
         return $this->hasMany(Lead::class);
+    }
+
+    public function operaciones(): HasMany
+    {
+        return $this->hasMany(Operacion::class);
+    }
+
+    public function documentos(): MorphMany
+    {
+        return $this->morphMany(Documento::class, 'documentable');
     }
 }
