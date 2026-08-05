@@ -254,27 +254,20 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                 Nuevo informe
             </a>
             @endcan
+            @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('medicacion'))
             @can('medicacion_create')
             <a href="{{ route('panel.medicacion.create', ['paciente_id'=>$Paciente->id,'from_paciente'=>$Paciente->id]) }}" class="rx-btn warn">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
                 Prescripción
             </a>
             @endcan
+            @endif
             {{-- Odontología (Componente opcional) — ver docs/ARQUITECTURA_MODULAR.md Etapa 4.3, fricción de acoplamiento --}}
             @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('odontologia'))
             @can('odontologia_access')
             <a href="{{ route('panel.odontologia.paciente', $Paciente->id) }}" class="rx-btn ghost">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 Odontología
-            </a>
-            @endcan
-            @endif
-            {{-- Medicina Laboral (Componente opcional) — segunda repetición EXACTA del mismo punto de fricción, Etapa 5 --}}
-            @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('medicina_laboral'))
-            @can('medicina_laboral_access')
-            <a href="{{ route('panel.medicina-laboral.paciente', $Paciente->id) }}" class="rx-btn ghost">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                Medicina Laboral
             </a>
             @endcan
             @endif
@@ -306,10 +299,12 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Informes @if($Informes->count())<span class="pt-badge muted" style="margin-left:3px;">{{ $Informes->count() }}</span>@endif
             </button>
+            @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('medicacion'))
             <button class="pt-tab-btn" data-tab="medicacion">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
                 Prescripción
             </button>
+            @endif
             <button class="pt-tab-btn" data-tab="historia">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 Historia completa
@@ -318,14 +313,18 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Recetas @if($Recetas->count())<span class="pt-badge muted" style="margin-left:3px;">{{ $Recetas->count() }}</span>@endif
             </button>
+            @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('consentimientos'))
             <button class="pt-tab-btn" data-tab="consentimientos">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 Consentimientos @if($Consentimientos->count())<span class="pt-badge muted" style="margin-left:3px;">{{ $Consentimientos->count() }}</span>@endif
             </button>
+            @endif
+            @unless(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('odontologia'))
             <button class="pt-tab-btn" data-tab="pdfs">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                 PDFs
             </button>
+            @endunless
         </div>
 
         <div class="pt-tab-body">
@@ -399,6 +398,7 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                         </div>
                     </div>
                 </div>
+                <x-field-if entidad="paciente" campo="admision">
                 <div class="rx-card">
                     <div class="rx-card-header">
                         <div class="rx-card-header-left">
@@ -435,6 +435,7 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                         </table>
                     </div>
                 </div>
+                </x-field-if>
             </div>
 
             {{-- ══ CITAS ══ --}}
@@ -530,6 +531,7 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
             </div>
 
             {{-- ══ PRESCRIPCIÓN ══ --}}
+            @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('medicacion'))
             <div class="pt-tab-pane" id="pt-tab-medicacion">
                 @php
                     $medicacionesPorFecha = $Medicaciones->sortByDesc('fecha')->groupBy('fecha');
@@ -593,9 +595,63 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                 </div>
                 @endforelse
             </div>
+            @endif
 
             {{-- ══ HISTORIA COMPLETA ══ --}}
             <div class="pt-tab-pane" id="pt-tab-historia">
+
+                @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('odontologia'))
+                @php
+                    $miOdontograma = \App\Modules\Odontologia\Models\Odontograma::where('paciente_id', $Paciente->id)
+                        ->with(['piezas.superficies'])->first();
+                    $superficiesLabelsResumen = \App\Modules\Odontologia\Models\SuperficieOdontologica::superficiesLabels();
+                    $estadosLabelsResumen = \App\Modules\Odontologia\Models\SuperficieOdontologica::estadosLabels();
+                @endphp
+                @if($miOdontograma)
+                <div class="pt-section">
+                    <div class="pt-section-header" onclick="toggleSec(this,'sec-odontograma')">
+                        <span>Odontograma</span>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="pt-section-body open" id="sec-odontograma">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                            <span style="font-size:12.5px;color:var(--text-muted);">Piezas con anotaciones o estado distinto de sana</span>
+                            <a href="{{ route('panel.odontologia.paciente', $Paciente->id) }}" class="rx-btn ghost" style="font-size:12px;">Ver odontograma completo →</a>
+                        </div>
+                        @php
+                            $novedades = collect();
+                            foreach ($miOdontograma->piezas as $pieza) {
+                                $cat = $pieza->catalogo();
+                                if ($pieza->estado_general) {
+                                    $novedades->push(['numero' => $pieza->numero_fdi, 'nombre' => $cat['nombre'], 'detalle' => \App\Modules\Odontologia\Models\PiezaOdontologica::estadosGeneralesLabels()[$pieza->estado_general] ?? $pieza->estado_general, 'nota' => $pieza->observaciones]);
+                                }
+                                foreach ($pieza->superficies as $sup) {
+                                    if ($sup->estado !== 'sana' || $sup->observaciones) {
+                                        $novedades->push(['numero' => $pieza->numero_fdi, 'nombre' => $cat['nombre'], 'detalle' => ($superficiesLabelsResumen[$sup->superficie] ?? $sup->superficie) . ' — ' . ($estadosLabelsResumen[$sup->estado] ?? $sup->estado), 'nota' => $sup->observaciones]);
+                                    }
+                                }
+                            }
+                        @endphp
+                        @if($novedades->isEmpty())
+                        <div style="font-size:12.5px;color:var(--text-muted);">Todas las piezas registradas están sanas, sin anotaciones.</div>
+                        @else
+                        <table class="pt-info-table">
+                            <thead><tr><th style="width:18%">Pieza</th><th>Detalle</th><th>Nota</th></tr></thead>
+                            <tbody>
+                                @foreach($novedades as $n)
+                                <tr>
+                                    <td>({{ $n['numero'] }}) {{ $n['nombre'] }}</td>
+                                    <td>{{ $n['detalle'] }}</td>
+                                    <td>{{ $n['nota'] ?? '—' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                @endif
 
                 <x-field-if entidad="paciente" campo="problematica">
                 @if($Paciente->problematica)
@@ -816,6 +872,7 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
             </div>
 
             {{-- ══ CONSENTIMIENTOS ══ --}}
+            @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('consentimientos'))
             <div class="pt-tab-pane" id="pt-tab-consentimientos">
                 <style>
                 .cons-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--card-border);}
@@ -983,8 +1040,10 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                     </div>
                 </div>
             </div>
+            @endif
 
             {{-- ══ PDFs ══ --}}
+            @unless(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('odontologia'))
             <div class="pt-tab-pane" id="pt-tab-pdfs">
                 @can('paciente_edit')
                 <div class="pt-pdf-grid">
@@ -992,12 +1051,15 @@ html.dark .pt-badge.danger  { background:#450a0a; color:#fca5a5; }
                         <button class="pt-pdf-btn" type="submit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Historia Clínica</button>
                     </form>
 
+                    @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('medicacion'))
                     <form action="{{ route('panel.paciente.medicacionPaciente', $Paciente->id) }}" method="GET" target="_blank">
                         <button class="pt-pdf-btn" type="submit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>Prescripción</button>
                     </form>
+                    @endif
                 </div>
                 @endcan
             </div>
+            @endunless
 
         </div>{{-- /pt-tab-body --}}
     </div>{{-- /pt-tabs --}}

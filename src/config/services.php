@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'turnstile' => [
+        'sitekey' => env('TURNSTILE_SITEKEY'),
+        'secret' => env('TURNSTILE_SECRET'),
+    ],
+
+    'contact' => [
+        'address' => env('CONTACT_EMAIL', 'franciscojosearioli@gmail.com'),
+    ],
+
 ];

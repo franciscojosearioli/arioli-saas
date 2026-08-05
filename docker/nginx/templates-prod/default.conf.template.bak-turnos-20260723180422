@@ -1,0 +1,477 @@
+map $host $tenant_subdomain {
+    ~^(?<sub>[^.]+)\.arioli\.dev$             $sub;
+    default                                    "";
+}
+
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers HIGH:!aNULL:!MD5;
+ssl_prefer_server_ciphers on;
+
+# Landing pública
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Admin panel
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name admin.arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Panel cliente
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name cliente.arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Loteos — dominio comercial raíz (tráfico proxiado por Cloudflare)
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name loteos.arioli.dev;
+    root /var/www/loteos/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/loteos/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   loteos_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Loteos — tenants de clientes y demos (*.loteos.arioli.dev) — DNS-only, cert Let's Encrypt
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name *.loteos.arioli.dev loteos.internal;
+    root /var/www/loteos/public;
+    index index.php;
+
+    ssl_certificate     /etc/letsencrypt/live/loteos.arioli.dev/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/loteos.arioli.dev/privkey.pem;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/loteos/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   loteos_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Historias Clínicas — acceso por dominio técnico (slug) — backward compat + API interna
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name *.historias-clinicas.arioli.dev historias-clinicas.internal;
+    root /var/www/historias-clinicas/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/historias-clinicas/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   historias_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Clínica (Historias) — dominio comercial raíz (tráfico proxiado por Cloudflare)
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name clinica.arioli.dev;
+    root /var/www/historias-clinicas/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/historias-clinicas/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   historias_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Clínica (Historias) — tenants de clientes y demos (*.clinica.arioli.dev) — DNS-only, cert Let's Encrypt
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name *.clinica.arioli.dev;
+    root /var/www/historias-clinicas/public;
+    index index.php;
+
+    ssl_certificate     /etc/letsencrypt/live/loteos.arioli.dev/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/loteos.arioli.dev/privkey.pem;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/historias-clinicas/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   historias_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# TallerPro — acceso por dominio técnico (slug) — backward compat + API interna
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name *.tallerpro.arioli.dev tallerpro.internal;
+    root /var/www/tallerpro/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/tallerpro/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   tallerpro_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Servis (TallerPro) — dominio comercial raíz (tráfico proxiado por Cloudflare)
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name servis.arioli.dev;
+    root /var/www/tallerpro/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/tallerpro/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   tallerpro_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Servis (TallerPro) — tenants de clientes y demos (*.servis.arioli.dev) — DNS-only, cert Let's Encrypt
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name *.servis.arioli.dev;
+    root /var/www/tallerpro/public;
+    index index.php;
+
+    ssl_certificate     /etc/letsencrypt/live/loteos.arioli.dev/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/loteos.arioli.dev/privkey.pem;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/tallerpro/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   tallerpro_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Tenants (wildcard — para futuros sistemas o acceso directo al core)
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name *.arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+        fastcgi_param  HTTP_X_TENANT $tenant_subdomain;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+
+    gzip on;
+    gzip_vary on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+}

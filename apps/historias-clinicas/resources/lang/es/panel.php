@@ -1,6 +1,6 @@
 <?php
 
 return [
-    'site_title' => 'Historias Clínicas',
+    'site_title' => 'Sistema de Salud',
 
 ];

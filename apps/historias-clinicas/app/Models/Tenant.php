@@ -10,8 +10,10 @@ class Tenant extends Model
 
     protected $fillable = [
         'tenant_key',
+        'slug',
         'database',
         'status',
+        'credencial_claimed_at',
         'version',
         'last_migration_at',
         'last_migration_status',
@@ -19,5 +21,6 @@ class Tenant extends Model
 
     protected $casts = [
         'last_migration_at' => 'datetime',
+        'credencial_claimed_at' => 'datetime',
     ];
 }

@@ -1,4 +1,4 @@
-﻿@extends('layouts.panel')
+@extends('layouts.panel')
 @section('title', trans('global.my_profile'))
 @section('content')
 

@@ -6,4 +6,7 @@ interface CapabilityInstallerContract
 {
     /** @param string[] $capabilityKeys */
     public function aplicar(array $capabilityKeys): void;
+
+    /** @param string[] $capabilityKeys */
+    public function deshabilitar(array $capabilityKeys): void;
 }

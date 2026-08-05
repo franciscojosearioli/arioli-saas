@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_STORE', 'redis'),
 
     /*
     |--------------------------------------------------------------------------
@@ -76,6 +76,46 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_CACHE_CONNECTION', 'cache'),
             'lock_connection' => env('REDIS_CACHE_LOCK_CONNECTION', 'default'),
+        ],
+
+        // Enterprise: High-performance tenant-aware cache
+        'tenant' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_TENANT_CONNECTION', 'tenant_cache'),
+            'lock_connection' => env('REDIS_TENANT_LOCK_CONNECTION', 'default'),
+            // Optimizations applied via CacheServiceProvider for compatibility
+        ],
+
+        // Enterprise: Session cache for tenant isolation
+        'sessions' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_SESSION_CONNECTION', 'sessions'),
+            'lock_connection' => env('REDIS_SESSION_LOCK_CONNECTION', 'default'),
+        ],
+
+        // Enterprise: Dashboard statistics cache (frequent reads)
+        'statistics' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_STATS_CONNECTION', 'cache'),
+            'lock_connection' => env('REDIS_STATS_LOCK_CONNECTION', 'default'),
+        ],
+
+        // Enterprise: License validation cache (high-frequency)
+        'licensing' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_LICENSE_CONNECTION', 'cache'),
+            'lock_connection' => env('REDIS_LICENSE_LOCK_CONNECTION', 'default'),
+        ],
+
+        // Enterprise: Failover cache for high availability
+        'enterprise_failover' => [
+            'driver' => 'failover',
+            'stores' => [
+                'redis',
+                'tenant',
+                'database',
+                'file',
+            ],
         ],
 
         'dynamodb' => [

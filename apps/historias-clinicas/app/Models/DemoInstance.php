@@ -11,6 +11,8 @@ class DemoInstance extends Model
     protected $fillable = [
         'tenant_key',
         'perfil_key',
+        'solicitante_nombre',
+        'solicitante_email',
         'status',
         'expires_at',
         'activada_at',

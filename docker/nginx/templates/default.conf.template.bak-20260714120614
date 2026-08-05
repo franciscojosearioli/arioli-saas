@@ -1,0 +1,316 @@
+map $host $tenant_subdomain {
+    ~^(?<sub>[^.]+)\.127\.0\.0\.1\.nip\.io$  $sub;
+    ~^(?<sub>[^.]+)\.arioli\.dev$             $sub;
+    default                                    "";
+}
+
+# Landing pública
+server {
+    listen 80;
+    server_name 127.0.0.1.nip.io arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Admin panel
+server {
+    listen 80;
+    server_name admin.127.0.0.1.nip.io admin.arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Panel cliente
+server {
+    listen 80;
+    server_name cliente.127.0.0.1.nip.io cliente.arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Loteos — tenants de clientes (*.loteos.*) + API interna
+# SCRIPT_FILENAME apunta a /var/www/html (path del container loteos_app, no de nginx)
+server {
+    listen 80;
+    server_name *.loteos.127.0.0.1.nip.io *.loteos.arioli.dev loteos.internal;
+    root /var/www/loteos/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/loteos/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   loteos_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Historias Clínicas — acceso por dominio técnico (slug) — backward compat + API interna
+# SCRIPT_FILENAME apunta a /var/www/html (path del container historias_app, no de nginx)
+server {
+    listen 80;
+    server_name *.historias-clinicas.127.0.0.1.nip.io *.historias-clinicas.arioli.dev historias-clinicas.internal;
+    root /var/www/historias-clinicas/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/historias-clinicas/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   historias_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+
+# Clínica (Historias) — acceso por dominio comercial público
+server {
+    listen 80;
+    server_name *.clinica.127.0.0.1.nip.io *.clinica.arioli.dev;
+    root /var/www/historias-clinicas/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/historias-clinicas/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   historias_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+
+# TallerPro — acceso por dominio técnico (slug) — backward compat + API interna
+server {
+    listen 80;
+    server_name *.tallerpro.127.0.0.1.nip.io *.tallerpro.arioli.dev tallerpro.internal;
+    root /var/www/tallerpro/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/tallerpro/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   tallerpro_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Servis (TallerPro) — acceso por dominio comercial público
+server {
+    listen 80;
+    server_name *.servis.127.0.0.1.nip.io *.servis.arioli.dev;
+    root /var/www/tallerpro/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location /storage/ {
+        alias /var/www/tallerpro/storage/app/public/;
+        try_files $uri $uri/ =404;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   tallerpro_app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+
+# Tenants (wildcard — para futuros sistemas o acceso directo al core)
+server {
+    listen 80;
+    server_name *.127.0.0.1.nip.io *.arioli.dev;
+    root /var/www/html/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        fastcgi_pass   app:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include        fastcgi_params;
+        fastcgi_param  HTTP_X_TENANT $tenant_subdomain;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+
+    gzip on;
+    gzip_vary on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+}

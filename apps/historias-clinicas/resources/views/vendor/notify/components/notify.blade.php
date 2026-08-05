@@ -1,4 +1,4 @@
-﻿@if(session()->has('notify.message'))
+@if(session()->has('notify.message'))
 @php
     $type    = session()->get('notify.type', 'success');
     $message = session()->get('notify.message');

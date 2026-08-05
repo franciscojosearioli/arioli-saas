@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Especialidad;
+use App\Models\InformeTipo;
 use App\Models\Paciente;
 use App\Models\PacienteFichaAdmision;
 use App\Models\PacienteHistorialTratamientos;
@@ -20,6 +22,21 @@ class SaludMentalDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        // Especialidad y tipos de informe del perfil — sin esto el centro de
+        // salud mental nace con esos catálogos vacíos (ver docs/ARQUITECTURA_MODULAR.md).
+        foreach ([
+            ['Psicología Clínica',       'Evaluación y tratamiento de trastornos psicológicos'],
+            ['Psiquiatría',              'Diagnóstico y tratamiento médico de trastornos mentales'],
+            ['Salud Mental Comunitaria', 'Atención integral en contexto comunitario y familiar'],
+            ['Trabajo Social',           'Intervención social, acompañamiento y orientación familiar'],
+        ] as [$nombre, $desc]) {
+            Especialidad::firstOrCreate(['nombre' => $nombre], ['descripcion' => $desc]);
+        }
+
+        foreach (['Informe Psicológico', 'Informe Psiquiátrico', 'Informe de Operador Terapéutico', 'Informe Clínico General'] as $tipo) {
+            InformeTipo::firstOrCreate(['name' => $tipo]);
+        }
+
         $laura = Paciente::firstOrCreate(
             ['dni' => '31555999'],
             $this->datosBase(['nombre' => 'Laura', 'apellido' => 'Fernández', 'sexo' => 'Femenino', 'estado_civil' => 'Soltero', 'fecha_nac' => '1990-10-05', 'edad' => 35])

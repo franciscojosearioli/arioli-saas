@@ -1,5 +1,14 @@
-﻿@extends('layouts.panel')
+@extends('layouts.panel')
 @section('content')
+
+@php
+    // Etapa 6.6.4 (ver docs/ARQUITECTURA_MODULAR.md): mismo resolver que
+    // ya usa <x-field-if> en panel/pacientes/show.blade.php, extendido acá
+    // al wizard de alta — antes ningún campo de este formulario respetaba
+    // field_visibility, así que Odontología veía Familia/Antecedentes/
+    // Educación y laboral igual que Salud Mental.
+    $fv = app(\App\Platform\FieldVisibilityResolver::class);
+@endphp
 
 @push('styles')
 <style>
@@ -243,6 +252,7 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <span class="d-md-none">2</span>
                 </a>
             </li>
+            @if($fv->isVisible('paciente', 'admision'))
             <li class="nav-item">
                 <a class="nav-link" data-toggle="tab" href="#tab-admision" role="tab">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,6 +262,8 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <span class="d-md-none">3</span>
                 </a>
             </li>
+            @endif
+            @if($fv->isVisible('paciente', 'familia'))
             <li class="nav-item">
                 <a class="nav-link" data-toggle="tab" href="#tab-familia" role="tab">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,6 +273,8 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <span class="d-md-none">4</span>
                 </a>
             </li>
+            @endif
+            @if($fv->isVisible('paciente', 'problematica') || $fv->isVisible('paciente', 'datos_adicionales') || $fv->isVisible('paciente', 'historial_tratamientos'))
             <li class="nav-item">
                 <a class="nav-link" data-toggle="tab" href="#tab-antecedentes" role="tab">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,6 +284,8 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <span class="d-md-none">5</span>
                 </a>
             </li>
+            @endif
+            @if($fv->isVisible('paciente', 'educacion') || $fv->isVisible('paciente', 'laboral'))
             <li class="nav-item">
                 <a class="nav-link" data-toggle="tab" href="#tab-edlaboral" role="tab">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,6 +295,7 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <span class="d-md-none">6</span>
                 </a>
             </li>
+            @endif
         </ul>
 
         {{-- ══ TAB CONTENT (kept exactly, only footer buttons changed) ══ --}}
@@ -439,6 +456,7 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
             </div>
 
             {{-- ===== TAB 3: ADMISIÓN ===== --}}
+            @if($fv->isVisible('paciente', 'admision'))
             <div class="tab-pane fade" id="tab-admision" role="tabpanel">
                 <h6 class="text-muted mb-3">Datos de ingreso</h6>
                 <div class="row">
@@ -508,8 +526,10 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <button type="button" class="btn btn-primary tab-next" data-target="tab-familia">Siguiente →</button>
                 </div>
             </div>
+            @endif
 
             {{-- ===== TAB 4: FAMILIA ===== --}}
+            @if($fv->isVisible('paciente', 'familia'))
             <div class="tab-pane fade" id="tab-familia" role="tabpanel">
                 <h6 class="text-muted mb-3">Responsables / Contactos</h6>
                 <div class="table-responsive mb-4">
@@ -609,9 +629,12 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <button type="button" class="btn btn-primary tab-next" data-target="tab-antecedentes">Siguiente →</button>
                 </div>
             </div>
+            @endif
 
             {{-- ===== TAB 5: ANTECEDENTES ===== --}}
+            @if($fv->isVisible('paciente', 'problematica') || $fv->isVisible('paciente', 'datos_adicionales') || $fv->isVisible('paciente', 'historial_tratamientos'))
             <div class="tab-pane fade" id="tab-antecedentes" role="tabpanel">
+                <x-field-if entidad="paciente" campo="historial_tratamientos">
                 <div class="d-flex align-items-center mb-3" style="gap:12px;">
                     <h6 class="text-muted mb-0">Tratamientos anteriores</h6>
                     <select class="form-control form-control-sm select2" name="historial_tratamiento" id="historial_tratamiento" style="width:auto;min-width:160px;">
@@ -632,14 +655,18 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     </table>
                     <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="add-row-historial_tratamiento">+ Agregar</button>
                 </div>
+                </x-field-if>
 
+                <x-field-if entidad="paciente" campo="problematica">
                 <hr>
                 <h6 class="text-muted mb-3">Problemática / Motivo de consulta</h6>
                 <div class="row">
                     <div class="col-md-12"><div class="form-group"><label for="problematica">Problemática principal</label><input class="form-control" type="text" name="problematica" id="problematica" value="{{ old('problematica') }}" placeholder="Diagnóstico o motivo de consulta general"></div></div>
                     <div class="col-md-12"><div class="form-group"><label for="problematica_detalles">Detalles</label><textarea class="form-control" name="problematica_detalles" id="problematica_detalles" rows="3" placeholder="Descripción ampliada...">{{ old('problematica_detalles') }}</textarea></div></div>
                 </div>
+                </x-field-if>
 
+                <x-field-if entidad="paciente" campo="datos_adicionales">
                 <hr>
                 <h6 class="text-muted mb-3">Antecedentes relevantes</h6>
                 <div class="row">
@@ -663,15 +690,19 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                         <div class="form-group" id="form-alergia_detalles" style="display:none;"><label for="alergia_detalles">Detalle alergias</label><textarea class="form-control" name="alergia_detalles" id="alergia_detalles" rows="2">{{ old('alergia_detalles') }}</textarea></div>
                     </div>
                 </div>
+                </x-field-if>
 
                 <div class="d-flex justify-content-between mt-4 pt-3 border-top">
                     <button type="button" class="btn btn-outline-secondary tab-prev" data-target="tab-familia">← Anterior</button>
                     <button type="button" class="btn btn-primary tab-next" data-target="tab-edlaboral">Siguiente →</button>
                 </div>
             </div>
+            @endif
 
             {{-- ===== TAB 6: EDUCACIÓN Y LABORAL ===== --}}
+            @if($fv->isVisible('paciente', 'educacion') || $fv->isVisible('paciente', 'laboral'))
             <div class="tab-pane fade" id="tab-edlaboral" role="tabpanel">
+                <x-field-if entidad="paciente" campo="educacion">
                 <h6 class="text-muted mb-3">Nivel educativo</h6>
                 @php
                 $niveles = [
@@ -713,7 +744,9 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <label for="observaciones">Observaciones educativas</label>
                     <textarea class="form-control" name="observaciones" id="observaciones" rows="2">{{ old('observaciones') }}</textarea>
                 </div>
+                </x-field-if>
 
+                <x-field-if entidad="paciente" campo="laboral">
                 <hr>
                 <h6 class="text-muted mb-3">Situación laboral</h6>
                 <div class="row">
@@ -725,6 +758,7 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     <div class="col-md-4"><div class="form-group"><label for="antiguedad_laboral">Antigüedad</label><input class="form-control" type="text" name="antiguedad_laboral" id="antiguedad_laboral" value="{{ old('antiguedad_laboral') }}" placeholder="Ej: 3 años"></div></div>
                     <div class="col-md-8"><div class="form-group"><label for="antecedente_laboral">Antecedente laboral</label><textarea class="form-control" name="antecedente_laboral" id="antecedente_laboral" rows="2">{{ old('antecedente_laboral') }}</textarea></div></div>
                 </div>
+                </x-field-if>
 
                 <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                     <button type="button" class="btn btn-outline-secondary tab-prev" data-target="tab-antecedentes">← Anterior</button>
@@ -736,6 +770,7 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
                     </button>
                 </div>
             </div>
+            @endif
 
         </div>{{-- /tab-content --}}
 
@@ -757,15 +792,24 @@ html.dark .pac-wrap .table td { background: transparent; color: #f1f5f9; border-
 <script>
 $(document).ready(function() {
 
-    // Tab navigation
-    $('.tab-next').on('click', function() {
-        $('#pacienteTabs a[href="#' + $(this).data('target') + '"]').tab('show');
+    // Tab navigation — recorre los pasos REALMENTE renderizados en
+    // #pacienteTabs (Etapa 6.6.4: field_visibility puede haber sacado
+    // algún <li> entero del DOM), no el data-target fijo del botón. Un
+    // "Siguiente"/"Anterior" que apuntara a un paso oculto quedaría sin
+    // ningún elemento que activar — jQuery no tira error, simplemente no
+    // hace nada, y el wizard queda trabado en el mismo paso.
+    function irAPasoAdyacente(offset) {
+        var ids = $('#pacienteTabs .nav-link').map(function() { return $(this).attr('href').substring(1); }).get();
+        var actual = $('#pacienteTabs .nav-link.active').attr('href');
+        if (!actual) return;
+        var idx = ids.indexOf(actual.substring(1));
+        var destino = ids[idx + offset];
+        if (idx === -1 || !destino) return;
+        $('#pacienteTabs a[href="#' + destino + '"]').tab('show');
         window.scrollTo(0, 0);
-    });
-    $('.tab-prev').on('click', function() {
-        $('#pacienteTabs a[href="#' + $(this).data('target') + '"]').tab('show');
-        window.scrollTo(0, 0);
-    });
+    }
+    $('.tab-next').on('click', function() { irAPasoAdyacente(1); });
+    $('.tab-prev').on('click', function() { irAPasoAdyacente(-1); });
 
     // Hash-based tab restore on page load
     var hash = window.location.hash;

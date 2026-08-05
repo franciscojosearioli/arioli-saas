@@ -8,7 +8,7 @@
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
         <div>
             <h1 style="font-size:22px; font-weight:700; color:#111827; margin:0;">Licencia</h1>
-            <p style="font-size:13px; color:#6b7280; margin:4px 0 0;">Información de tu suscripción a {{ $info?->product ?? 'Historias Clínicas' }}</p>
+            <p style="font-size:13px; color:#6b7280; margin:4px 0 0;">Información de tu suscripción a {{ $info?->product ?? 'Sistema de Salud' }}</p>
         </div>
         @if($info?->isDemo())
         <a href="{{ config('saas.landing_url') }}" target="_blank"

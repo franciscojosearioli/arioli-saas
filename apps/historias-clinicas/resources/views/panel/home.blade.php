@@ -1,8 +1,15 @@
-﻿@extends('layouts.panel')
+@extends('layouts.panel')
 @section('title', 'Panel Operativo')
 
 @push('styles')
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
 <style>
+    #dash-calendar .fc-toolbar-title { font-size: 15px; }
+    #dash-calendar .fc-button { padding: 4px 8px; font-size: 12.5px; }
+    #dash-calendar .fc-daygrid-day-number,
+    #dash-calendar .fc-col-header-cell-cushion { font-size: 12px; }
+    #dash-calendar .fc-event { font-size: 11px; cursor: pointer; }
+
     /* ── Dashboard vars — usa las mismas que el layout ── */
     :root {
         --green:        #16a34a;
@@ -237,6 +244,14 @@
         height: 180px;
     }
 
+    /* ── Activity bars (paridad visual con admin/dashboard) ── */
+    .act-row { display: flex; flex-direction: column; gap: 4px; }
+    .act-top { display: flex; justify-content: space-between; align-items: center; }
+    .act-label { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+    .act-val { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .prog-bar { height: 6px; background: var(--card-border); border-radius: 99px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
+
     /* ── Tables row ── */
     .tables-row {
         display: grid;
@@ -372,7 +387,7 @@
     {{-- ── Welcome ── --}}
     <div class="dash-welcome">
         <div>
-            <h1>Panel Operativo - Sistema de Historias Clínicas 👩‍⚕️</h1>
+            <h1>Panel Operativo — {{ $sistemaConfig->nombre_sistema ?? 'Sistema de Salud' }}</h1>
             <p>{{ now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}</p>
         </div>
         <div class="dash-date">{{ now()->format('H:i') }} hs</div>
@@ -463,6 +478,7 @@
         </div>
 
         {{-- Medicaciones --}}
+        @if($capabilityMedicacion)
         <div class="kpi-card kpi-teal">
             <div class="kpi-top">
                 <div>
@@ -481,6 +497,7 @@
             </div>
             <a href="{{ route('panel.medicacion.index') }}" class="kpi-link">Ver medicaciones →</a>
         </div>
+        @endif
 
     </div>
 
@@ -508,6 +525,7 @@
                     </div>
                     <span class="quick-action-text">Nuevo informe</span>
                 </a>
+                @if($capabilityMedicacion)
                 <a href="{{ route('panel.medicacion.create') }}" class="quick-action">
                     <div class="quick-action-icon" style="background:var(--purple-bg); color:var(--purple);">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,6 +542,7 @@
                     </div>
                     <span class="quick-action-text">Esquema medicación</span>
                 </a>
+                @endif
                 @if(Route::has('panel.agenda.create'))
                 <a href="{{ route('panel.agenda.create') }}" class="quick-action">
                     <div class="quick-action-icon" style="background:var(--yellow-bg); color:var(--yellow);">
@@ -541,34 +560,39 @@
         <div class="chart-card">
             <div class="chart-title">Actividad de hoy</div>
             <div class="chart-sub">Resumen de actividades médicas</div>
-            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 12px;">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--blue);"></div>
-                        Informes del día
-                    </span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">{{ $informesHoy }}</span>
+            @php
+                $maxActividad = max($informesHoy, $capabilityMedicacion ? $medicacionesHoy : 0, $informesSemana, $pacientesActivosCount, 1);
+            @endphp
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
+                <div class="act-row">
+                    <div class="act-top">
+                        <span class="act-label">📋 Informes del día</span>
+                        <span class="act-val" style="color:var(--blue)">{{ $informesHoy }}</span>
+                    </div>
+                    <div class="prog-bar"><div class="prog-fill" style="width:{{ $informesHoy / $maxActividad * 100 }}%;background:var(--blue)"></div></div>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--teal);"></div>
-                        Prescripciones programadas
-                    </span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">{{ $medicacionesHoy }}</span>
+                @if($capabilityMedicacion)
+                <div class="act-row">
+                    <div class="act-top">
+                        <span class="act-label">💊 Prescripciones programadas</span>
+                        <span class="act-val" style="color:var(--teal)">{{ $medicacionesHoy }}</span>
+                    </div>
+                    <div class="prog-bar"><div class="prog-fill" style="width:{{ $medicacionesHoy / $maxActividad * 100 }}%;background:var(--teal)"></div></div>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--purple);"></div>
-                        Informes esta semana
-                    </span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">{{ $informesSemana }}</span>
+                @endif
+                <div class="act-row">
+                    <div class="act-top">
+                        <span class="act-label">📈 Informes esta semana</span>
+                        <span class="act-val" style="color:var(--purple)">{{ $informesSemana }}</span>
+                    </div>
+                    <div class="prog-bar"><div class="prog-fill" style="width:{{ $informesSemana / $maxActividad * 100 }}%;background:var(--purple)"></div></div>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--green);"></div>
-                        Pacientes en tratamiento
-                    </span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">{{ $pacientesActivosCount }}</span>
+                <div class="act-row">
+                    <div class="act-top">
+                        <span class="act-label">👥 Pacientes en tratamiento</span>
+                        <span class="act-val" style="color:var(--green)">{{ $pacientesActivosCount }}</span>
+                    </div>
+                    <div class="prog-bar"><div class="prog-fill" style="width:{{ $pacientesActivosCount / $maxActividad * 100 }}%;background:var(--green)"></div></div>
                 </div>
             </div>
         </div>
@@ -682,6 +706,19 @@
 
     </div>
 
+    {{-- ── Calendario ── --}}
+    @if(Route::has('panel.agenda.eventos'))
+    <div class="table-card" style="animation: fadeUp .4s .4s ease both;">
+        <div class="table-card-header">
+            <span class="table-card-title">🗓️ Calendario</span>
+            <a href="{{ route('panel.agenda.index') }}" class="table-card-link">Ver agenda →</a>
+        </div>
+        <div style="padding: 16px;">
+            <div id="dash-calendar"></div>
+        </div>
+    </div>
+    @endif
+
     {{-- ── Próximas citas ── --}}
     @if(Route::has('panel.agenda.index'))
     <div class="table-card" style="animation: fadeUp .4s .45s ease both;">
@@ -740,7 +777,14 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Animate progress bars on load
+    // Animate progress bars on load (.prog-fill — actividad de hoy)
+    document.querySelectorAll('.prog-fill').forEach(el => {
+        const w = el.style.width;
+        el.style.width = '0';
+        requestAnimationFrame(() => { el.style.width = w; });
+    });
+
+    // Animate progress bars on load (Estado del sistema — width inline con transition)
     document.querySelectorAll('[style*="transition: width"]').forEach(el => {
         const match = el.style.width.match(/(\d+(?:\.\d+)?)%/);
         if (match) {
@@ -754,3 +798,43 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endpush
+
+@if(Route::has('panel.agenda.eventos'))
+@push('scripts')
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var calendarEl = document.getElementById('dash-calendar');
+    if (!calendarEl) return;
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'es',
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left:   'prev,next today',
+            center: 'title',
+            right:  'dayGridMonth,listWeek'
+        },
+        buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
+        height: 480,
+        nowIndicator: true,
+        navLinks: false,
+        selectable: false,
+        editable: false,
+        dayMaxEvents: 3,
+        events: '{{ route("panel.agenda.eventos") }}',
+        eventClick: function (info) {
+            info.jsEvent.preventDefault();
+            var props = info.event.extendedProps;
+            @canany(['agenda_show', 'agenda_edit'])
+            if (props.url_show) window.location.href = props.url_show;
+            @endcanany
+        },
+    });
+
+    calendar.render();
+});
+</script>
+@endpush
+@endif

@@ -7,6 +7,7 @@ use App\Models\Medicacion;
 use App\Models\Informe;
 use App\Models\User;
 use App\Models\ConfiguracionSistema;
+use App\Platform\PlatformRegistry;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 
@@ -26,12 +27,20 @@ class HomeController
         // Total de historias clínicas (pacientes registrados)
         $historiasCount = Paciente::count();
 
-        // Medicaciones de pacientes activos
-        $medicaciones = Medicacion::whereHas('paciente', function($query) {
-            $query->whereHas('ficha_admision', function($query) {
-                $query->whereNull('fecha_egreso');
-            });
-        })->get();
+        // Medicaciones de pacientes activos — mismo Gate que el link de
+        // menú "Prescripciones" (AuthGates: medicacion_access ↔
+        // capability_key='medicacion'). Sin este chequeo el dashboard
+        // consultaba y mostraba Medicación aunque el perfil del tenant la
+        // tuviera deshabilitada (ej. Odontología, ver Ajustes post-6.5).
+        $capabilityMedicacion = app(PlatformRegistry::class)->isCapabilityEnabled('medicacion');
+
+        $medicaciones = $capabilityMedicacion
+            ? Medicacion::whereHas('paciente', function($query) {
+                $query->whereHas('ficha_admision', function($query) {
+                    $query->whereNull('fecha_egreso');
+                });
+            })->get()
+            : collect();
 
         // Informes del mes actual
         $informesDelMes = Informe::whereMonth('created_at', now()->month)->count();
@@ -41,7 +50,9 @@ class HomeController
 
         // Estadísticas de actividad (últimos 30 días)
         $informesRecientes = Informe::where('created_at', '>=', now()->subDays(30))->count();
-        $medicacionesRecientes = Medicacion::where('created_at', '>=', now()->subDays(30))->count();
+        $medicacionesRecientes = $capabilityMedicacion
+            ? Medicacion::where('created_at', '>=', now()->subDays(30))->count()
+            : 0;
         $pacientesRecientes = Paciente::where('created_at', '>=', now()->subDays(30))->count();
 
         // Últimos pacientes registrados
@@ -54,6 +65,7 @@ class HomeController
             'pacientesActivosCount',
             'historiasCount',
             'medicaciones',
+            'capabilityMedicacion',
             'informesDelMes',
             'totalUsuarios',
             'informesRecientes',

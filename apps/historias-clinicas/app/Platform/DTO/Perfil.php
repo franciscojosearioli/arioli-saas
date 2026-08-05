@@ -15,12 +15,26 @@ namespace App\Platform\DTO;
  */
 final class Perfil
 {
-    /** @param string[] $componentes claves de Componente en config/platform/componentes.php */
+    /**
+     * @param string[] $componentes claves de Componente en config/platform/componentes.php
+     * @param string $nombreSistema título mostrado en el sistema (login, pestaña del navegador) para
+     *        un tenant provisionado con este Perfil — ver TenantsCrear::provisionarTenant().
+     * @param string[] $caracteristicas funcionalidades reales que incluye — mostradas en el
+     *        selector público de demo (/demo) y pensadas para reusarse en el checkout de
+     *        arioli.dev. Solo lo que ya existe de verdad, no aspiracional.
+     * @param ?class-string $demoSeeder seeder que siembra el Escenario Demo de este perfil
+     *        (Etapa 6.2), si tiene uno. Etapa 7.1: plegado acá desde
+     *        TenantsCrear::ESCENARIOS_DEMO — era una tercera lista separada,
+     *        redundante con esta misma información (ver docs/CATALOGO_COMPONENTES.md 7.9).
+     */
     public function __construct(
         public readonly string $key,
         public readonly string $nombre,
         public readonly string $descripcion = '',
         public readonly array $componentes = [],
+        public readonly string $nombreSistema = 'Sistema de Salud',
+        public readonly array $caracteristicas = [],
+        public readonly ?string $demoSeeder = null,
     ) {
     }
 }

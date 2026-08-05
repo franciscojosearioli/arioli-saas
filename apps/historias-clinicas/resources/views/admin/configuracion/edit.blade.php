@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 @section('content')
 
 @push('styles')
@@ -190,7 +190,7 @@
                         <input type="text" name="nombre_sistema" id="nombre_sistema"
                                class="cfg-input {{ $errors->has('nombre_sistema') ? 'err' : '' }}"
                                value="{{ old('nombre_sistema', $config->nombre_sistema) }}"
-                               placeholder="Ej: Historias Clínicas — Centro Médico" required>
+                               placeholder="Ej: Sistema de Salud — Centro Médico" required>
                         <span class="cfg-hint">Aparece en el título del navegador y en el encabezado.</span>
                         @error('nombre_sistema') <span class="cfg-err">{{ $message }}</span> @enderror
                     </div>

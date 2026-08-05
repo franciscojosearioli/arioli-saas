@@ -59,6 +59,10 @@ class ComponenteInstaller implements ComponenteInstallerContract
             $instalados->flatMap(fn (Componente $c) => $c->capabilities)->unique()->values()->all()
         );
 
+        $this->capabilityInstaller->deshabilitar(
+            $instalados->flatMap(fn (Componente $c) => $c->capabilitiesDisabled)->unique()->values()->all()
+        );
+
         $presetKeys = $instalados->flatMap(fn (Componente $c) => $c->fieldVisibilitySeed)->unique();
         $fieldVisibilitySeeds = $presetKeys
             ->flatMap(fn (string $presetKey) => config('field_visibility_presets.' . $presetKey, []))

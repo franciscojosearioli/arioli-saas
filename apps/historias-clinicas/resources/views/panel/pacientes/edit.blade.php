@@ -1,4 +1,4 @@
-﻿@extends('layouts.panel')
+@extends('layouts.panel')
 @section('title', 'Editar — ' . $Paciente->apellido . ', ' . $Paciente->nombre)
 
 @push('styles')
@@ -153,6 +153,10 @@ html.dark .rx-input { background:#0b1120; color:#f1f5f9; border-color:#1e293b; }
 
 @section('content')
 @php
+// Etapa 6.6.4 (ver docs/ARQUITECTURA_MODULAR.md): mismo resolver que
+// <x-field-if> ya usa en panel/pacientes/show.blade.php, extendido acá
+// al formulario de edición.
+$fv  = app(\App\Platform\FieldVisibilityResolver::class);
 $fa  = $Paciente->ficha_admision;
 $edu = $Paciente->educacion;
 $lab = $Paciente->laboral;
@@ -216,30 +220,38 @@ $dad = $Paciente->datos_adicionales;
                         <span class="d-none d-md-inline">2. Domicilio</span><span class="d-md-none">2</span>
                     </a>
                 </li>
+                @if($fv->isVisible('paciente', 'admision'))
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#tab-admision" role="tab">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         <span class="d-none d-md-inline">3. Admisión</span><span class="d-md-none">3</span>
                     </a>
                 </li>
+                @endif
+                @if($fv->isVisible('paciente', 'familia'))
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#tab-familia" role="tab">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         <span class="d-none d-md-inline">4. Familia</span><span class="d-md-none">4</span>
                     </a>
                 </li>
+                @endif
+                @if($fv->isVisible('paciente', 'problematica') || $fv->isVisible('paciente', 'datos_adicionales') || $fv->isVisible('paciente', 'historial_tratamientos'))
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#tab-antecedentes" role="tab">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span class="d-none d-md-inline">5. Antecedentes</span><span class="d-md-none">5</span>
                     </a>
                 </li>
+                @endif
+                @if($fv->isVisible('paciente', 'educacion') || $fv->isVisible('paciente', 'laboral'))
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#tab-edlaboral" role="tab">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
                         <span class="d-none d-md-inline">6. Educación y laboral</span><span class="d-md-none">6</span>
                     </a>
                 </li>
+                @endif
             </ul>
 
             <div class="tab-content" id="pacienteTabContent">
@@ -380,6 +392,7 @@ $dad = $Paciente->datos_adicionales;
                 </div>
 
                 {{-- ═══ TAB 3: ADMISIÓN ═══ --}}
+                @if($fv->isVisible('paciente', 'admision'))
                 <div class="tab-pane fade" id="tab-admision" role="tabpanel">
                     <p class="pe-section-title">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
@@ -461,8 +474,10 @@ $dad = $Paciente->datos_adicionales;
                         </button>
                     </div>
                 </div>
+                @endif
 
                 {{-- ═══ TAB 4: FAMILIA ═══ --}}
+                @if($fv->isVisible('paciente', 'familia'))
                 <div class="tab-pane fade" id="tab-familia" role="tabpanel">
                     <p class="pe-section-title">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -583,9 +598,12 @@ $dad = $Paciente->datos_adicionales;
                         </button>
                     </div>
                 </div>
+                @endif
 
                 {{-- ═══ TAB 5: ANTECEDENTES ═══ --}}
+                @if($fv->isVisible('paciente', 'problematica') || $fv->isVisible('paciente', 'datos_adicionales') || $fv->isVisible('paciente', 'historial_tratamientos'))
                 <div class="tab-pane fade" id="tab-antecedentes" role="tabpanel">
+                    <x-field-if entidad="paciente" campo="historial_tratamientos">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
                         <p class="pe-section-title" style="margin:0;">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -614,7 +632,9 @@ $dad = $Paciente->datos_adicionales;
                             Agregar
                         </button>
                     </div>
+                    </x-field-if>
 
+                    <x-field-if entidad="paciente" campo="problematica">
                     <hr class="pe-divider">
                     <p class="pe-section-title">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -628,7 +648,9 @@ $dad = $Paciente->datos_adicionales;
                         <label class="rx-label" for="problematica_detalles">Detalles</label>
                         <textarea class="rx-input" name="problematica_detalles" id="problematica_detalles" rows="3" style="resize:vertical;">{{ old('problematica_detalles', $pro->problematica_detalles ?? '') }}</textarea>
                     </div>
+                    </x-field-if>
 
+                    <x-field-if entidad="paciente" campo="datos_adicionales">
                     <hr class="pe-divider">
                     <p class="pe-section-title">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
@@ -698,6 +720,7 @@ $dad = $Paciente->datos_adicionales;
                             </div>
                         </div>
                     </div>
+                    </x-field-if>
 
                     <div class="pe-tab-nav-btns">
                         <button type="button" class="rx-btn ghost tab-prev" data-target="tab-familia">
@@ -710,9 +733,12 @@ $dad = $Paciente->datos_adicionales;
                         </button>
                     </div>
                 </div>
+                @endif
 
                 {{-- ═══ TAB 6: EDUCACIÓN Y LABORAL ═══ --}}
+                @if($fv->isVisible('paciente', 'educacion') || $fv->isVisible('paciente', 'laboral'))
                 <div class="tab-pane fade" id="tab-edlaboral" role="tabpanel">
+                    <x-field-if entidad="paciente" campo="educacion">
                     <p class="pe-section-title">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
                         Nivel educativo
@@ -746,7 +772,9 @@ $dad = $Paciente->datos_adicionales;
                         <label class="rx-label" for="observaciones">Observaciones educativas</label>
                         <textarea class="rx-input" name="observaciones" id="observaciones" rows="2" style="resize:vertical;">{{ old('observaciones', $edu->observaciones ?? '') }}</textarea>
                     </div>
+                    </x-field-if>
 
+                    <x-field-if entidad="paciente" campo="laboral">
                     <hr class="pe-divider">
                     <p class="pe-section-title">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -780,6 +808,7 @@ $dad = $Paciente->datos_adicionales;
                             <textarea class="rx-input" name="antecedente_laboral" id="antecedente_laboral" rows="2" style="resize:vertical;">{{ old('antecedente_laboral', $lab->antecedente_laboral ?? '') }}</textarea>
                         </div>
                     </div>
+                    </x-field-if>
 
                     <div class="pe-tab-nav-btns">
                         <button type="button" class="rx-btn ghost tab-prev" data-target="tab-antecedentes">
@@ -792,6 +821,7 @@ $dad = $Paciente->datos_adicionales;
                         </button>
                     </div>
                 </div>
+                @endif
 
             </div>{{-- /tab-content --}}
         </div>{{-- /pe-tabs-wrap --}}
@@ -811,15 +841,21 @@ $dad = $Paciente->datos_adicionales;
 @parent
 <script>
 $(document).ready(function() {
-    // Tab navigation buttons
-    $('.tab-next').on('click', function() {
-        $('#pacienteTabs a[href="#' + $(this).data('target') + '"]').tab('show');
+    // Tab navigation buttons — recorre los pasos REALMENTE renderizados
+    // en #pacienteTabs (Etapa 6.6.4: field_visibility puede haber sacado
+    // algún <li> entero del DOM), no el data-target fijo del botón.
+    function irAPasoAdyacente(offset) {
+        var ids = $('#pacienteTabs .nav-link').map(function() { return $(this).attr('href').substring(1); }).get();
+        var actual = $('#pacienteTabs .nav-link.active').attr('href');
+        if (!actual) return;
+        var idx = ids.indexOf(actual.substring(1));
+        var destino = ids[idx + offset];
+        if (idx === -1 || !destino) return;
+        $('#pacienteTabs a[href="#' + destino + '"]').tab('show');
         window.scrollTo(0, 0);
-    });
-    $('.tab-prev').on('click', function() {
-        $('#pacienteTabs a[href="#' + $(this).data('target') + '"]').tab('show');
-        window.scrollTo(0, 0);
-    });
+    }
+    $('.tab-next').on('click', function() { irAPasoAdyacente(1); });
+    $('.tab-prev').on('click', function() { irAPasoAdyacente(-1); });
 
     // Hash restore
     var hash = window.location.hash;

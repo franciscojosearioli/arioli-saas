@@ -1,4 +1,4 @@
-﻿@props(['header' => null])
+@props(['header' => null])
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -10,7 +10,7 @@
     @else
     <link rel="icon" href="{{ asset('favicon-sistema-hc.png') }}" type="image/png">
     @endif
-    <title>{{ $header ? $header . ' — ' : '' }}{{ $sistemaConfig?->nombre_sistema ?? 'Sistema de Historias Clínicas' }}</title>
+    <title>{{ $header ? $header . ' — ' : '' }}{{ $sistemaConfig?->nombre_sistema ?? 'Sistema de Salud' }}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
@@ -405,7 +405,7 @@
                 @endif
             </div>
             <div class="logo-texts">
-                <span class="logo-name">{{ $sistemaConfig?->nombre_sistema ?? 'Sistema HC' }}</span>
+                <span class="logo-name">{{ $sistemaConfig?->nombre_sistema ?? 'Sistema de Salud' }}</span>
                 <span class="logo-sub">Panel administrativo</span>
             </div>
         </a>
@@ -467,6 +467,7 @@
                 </svg>
                 <span>Informes</span>
             </a>
+            @if(app(\App\Platform\PlatformRegistry::class)->isCapabilityEnabled('medicacion'))
             <a href="{{ route('panel.medicacion.index') }}" data-title="Prescripciones"
                class="nav-link {{ request()->routeIs('panel.medicacion.*') ? 'active' : '' }}">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -475,6 +476,7 @@
                 </svg>
                 <span>Prescripciones</span>
             </a>
+            @endif
 
             <a href="{{ route('panel.recetas.index') }}" data-title="Recetas"
                class="nav-link {{ request()->routeIs('panel.recetas.*') ? 'active' : '' }}">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DemoInstance;
 use App\Services\License\LicenseClientInterface;
 use Closure;
 use Illuminate\Http\Request;
@@ -17,6 +18,15 @@ class DemoProtection
             $isDemo = $this->license->isDemo();
         } catch (\Throwable) {
             $isDemo = false;
+        }
+
+        // license->isDemo() solo conoce demos registrados centralmente
+        // (el demo oficial viejo) — los de autoservicio (Etapa 6.4) no
+        // tienen licencia central, así que sin este chequeo quedaban sin
+        // ninguna protección de escritura.
+        if (! $isDemo) {
+            $tenantId = $request->attributes->get('tenant_id');
+            $isDemo = $tenantId && DemoInstance::on('mysql_tenant_admin')->where('tenant_key', $tenantId)->exists();
         }
 
         if (!$isDemo) {

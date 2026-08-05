@@ -1,4 +1,4 @@
-﻿@extends('layouts.panel')
+@extends('layouts.panel')
 @section('title', 'Prescripción — ' . ($medicacion->paciente->nombre ?? '') . ' ' . ($medicacion->paciente->apellido ?? ''))
 
 @push('styles')

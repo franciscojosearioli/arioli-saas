@@ -6,6 +6,7 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -27,10 +28,16 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ];
+
+        if (config('services.turnstile.sitekey') && config('services.turnstile.secret')) {
+            $rules['cf-turnstile-response'] = ['required', 'string'];
+        }
+
+        return $rules;
     }
 
     /**
@@ -41,6 +48,7 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+        $this->ensureTurnstilePasses();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
@@ -51,6 +59,30 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Ensure the Cloudflare Turnstile challenge passed, when configured.
+     *
+     * @throws ValidationException
+     */
+    public function ensureTurnstilePasses(): void
+    {
+        if (! (config('services.turnstile.sitekey') && config('services.turnstile.secret'))) {
+            return;
+        }
+
+        $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+            'secret' => config('services.turnstile.secret'),
+            'response' => $this->input('cf-turnstile-response'),
+            'remoteip' => $this->ip(),
+        ]);
+
+        if (! ($response->json('success') ?? false)) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'La verificación de seguridad falló, intente nuevamente.',
+            ]);
+        }
     }
 
     /**

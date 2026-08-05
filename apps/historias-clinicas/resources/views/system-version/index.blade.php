@@ -8,7 +8,7 @@
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
         <div>
             <h1 style="font-size:22px; font-weight:700; color:var(--t1); margin:0;">Versión del sistema</h1>
-            <p style="font-size:13px; color:var(--t2); margin:4px 0 0;">Estado de actualizaciones de Historias Clínicas</p>
+            <p style="font-size:13px; color:var(--t2); margin:4px 0 0;">Estado de actualizaciones de Sistema de Salud</p>
         </div>
         <a href="{{ route('system-version.index') }}"
            style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; background:var(--bg); color:var(--t2); border:1px solid var(--border);">

@@ -4,6 +4,6 @@
 @section('content')
 <div style="max-width:640px; margin:60px auto; padding:0 20px; text-align:center;">
     <h1 style="font-size:20px; font-weight:700; color:var(--text-primary,#0f172a); margin-bottom:8px;">Odontología</h1>
-    <p style="font-size:13px; color:var(--text-secondary,#64748b);">Módulo en construcción — el odontograma y las fichas odontológicas todavía no están implementados.</p>
+    <p style="font-size:13px; color:var(--text-secondary,#64748b);">Buscá un paciente desde su ficha para ver o cargar su odontograma.</p>
 </div>
 @endsection

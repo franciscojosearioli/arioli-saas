@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Acceso al Sistema') — {{ $sistemaConfig?->nombre_sistema ?? 'Sistema de Historias Clínicas' }}</title>
+    <title>@yield('title', 'Acceso al Sistema') — {{ $sistemaConfig?->nombre_sistema ?? 'Sistema de Salud' }}</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">

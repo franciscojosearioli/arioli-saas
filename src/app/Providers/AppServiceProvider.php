@@ -19,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\View::share([
+            'appTenantDomain'  => config('app.tenant_domain'),
+            'appAdminDomain'   => config('app.admin_domain'),
+            'appClienteDomain' => config('app.cliente_domain'),
+            'appLandingDomain' => config('app.landing_domain'),
+        ]);
     }
 }

@@ -32,6 +32,39 @@ return [
 
     'connections' => [
 
+        'central' => [
+            'driver'   => 'mysql',
+            'host'     => env('DB_HOST', '127.0.0.1'),
+            'port'     => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'saas_central'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset'  => 'utf8mb4',
+            'collation'=> 'utf8mb4_unicode_ci',
+            'prefix'   => '',
+            'strict'   => true,
+            'engine'   => null,
+        ],
+
+        'tenant' => [
+            'driver'         => 'mysql',
+            'host'           => env('DB_HOST', '127.0.0.1'),
+            'port'           => env('DB_PORT', '3306'),
+            'database'       => env('DB_DATABASE', 'saas_central'),
+            'username'       => env('DB_USERNAME', 'root'),
+            'password'       => env('DB_PASSWORD', ''),
+            'unix_socket'    => env('DB_SOCKET', ''),
+            'charset'        => env('DB_CHARSET', 'utf8mb4'),
+            'collation'      => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix'         => '',
+            'prefix_indexes' => true,
+            'strict'         => true,
+            'engine'         => null,
+            'options'        => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
@@ -150,33 +183,113 @@ return [
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
-            'persistent' => env('REDIS_PERSISTENT', false),
+            'persistent' => env('REDIS_PERSISTENT', true), // Enterprise: Enable persistent connections
+            'parameters' => [
+                'tcp_keepalive' => env('REDIS_TCP_KEEPALIVE', 1),
+                'password' => env('REDIS_PASSWORD'),
+            ],
+            // Enterprise optimizations - applied programmatically in CacheServiceProvider
+            // to ensure compatibility across different Redis extension versions
         ],
 
+        // Enterprise: Default connection for queues and general operations
         'default' => [
             'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'host' => env('REDIS_HOST', 'redis'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 60),
+            'context' => [
+                'tcp' => [
+                    'user_timeout' => env('REDIS_TCP_USER_TIMEOUT', 60),
+                ],
+            ],
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
+        // Enterprise: Cache connection optimized for tenant isolation
         'cache' => [
             'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'host' => env('REDIS_HOST', 'redis'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 30),
+            'context' => [
+                'tcp' => [
+                    'user_timeout' => env('REDIS_TCP_USER_TIMEOUT', 30),
+                ],
+            ],
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+            'backoff_base' => env('REDIS_BACKOFF_BASE', 50),
+            'backoff_cap' => env('REDIS_BACKOFF_CAP', 500),
+        ],
+
+        // Enterprise: Session storage with tenant isolation
+        'sessions' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', 'redis'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_SESSION_DB', '2'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 10),
+            'context' => [
+                'tcp' => [
+                    'user_timeout' => env('REDIS_TCP_USER_TIMEOUT', 10),
+                ],
+            ],
+            'max_retries' => env('REDIS_MAX_RETRIES', 2),
+            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+            'backoff_base' => env('REDIS_BACKOFF_BASE', 25),
+            'backoff_cap' => env('REDIS_BACKOFF_CAP', 250),
+        ],
+
+        // Enterprise: Queue connection for background jobs
+        'queues' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', 'redis'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_QUEUE_DB', '3'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 120),
+            'context' => [
+                'tcp' => [
+                    'user_timeout' => env('REDIS_TCP_USER_TIMEOUT', 120),
+                ],
+            ],
+            'max_retries' => env('REDIS_MAX_RETRIES', 5),
+            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
-            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+            'backoff_cap' => env('REDIS_BACKOFF_CAP', 2000),
+        ],
+
+        // Enterprise: Tenant-specific cache for high-isolation scenarios
+        'tenant_cache' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', 'redis'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_TENANT_CACHE_DB', '4'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 15),
+            'context' => [
+                'tcp' => [
+                    'user_timeout' => env('REDIS_TCP_USER_TIMEOUT', 15),
+                ],
+            ],
+            'max_retries' => env('REDIS_MAX_RETRIES', 3),
+            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+            'backoff_base' => env('REDIS_BACKOFF_BASE', 50),
+            'backoff_cap' => env('REDIS_BACKOFF_CAP', 500),
         ],
 
     ],

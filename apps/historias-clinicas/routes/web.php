@@ -41,6 +41,27 @@ Route::middleware(['auth', '2fa', 'admin'])->group(function () {
 Route::get('firma-consentimiento/{token}',  [\App\Http\Controllers\FirmaPublicaController::class, 'show'])->name('consentimiento.firmaPublica')->middleware('capability:consentimientos');
 Route::post('firma-consentimiento/{token}', [\App\Http\Controllers\FirmaPublicaController::class, 'guardar'])->name('consentimiento.guardarFirmaPublica')->middleware('capability:consentimientos');
 
+// Etapa 6.5: reclamo de credenciales de un cliente real (no auth — link
+// firmado de un solo uso; a diferencia de /demo, SÍ requiere un tenant
+// resuelto, el guard vive en OnboardingController).
+Route::prefix('onboarding')->name('onboarding.')->group(function () {
+    Route::get('/credenciales/{slug}', [\App\Http\Controllers\OnboardingController::class, 'show'])->name('credenciales.show')->middleware('throttle:30,1,onboarding-show');
+    Route::post('/credenciales/{slug}', [\App\Http\Controllers\OnboardingController::class, 'claim'])->name('credenciales.claim')->middleware('throttle:10,1,onboarding-claim');
+});
+
+// Etapa 6.4: autoservicio público de demos (no auth — solo alcanzable
+// desde el dominio central, sin subdominio de tenant resuelto).
+// El tercer parámetro de throttle (prefix) es necesario: sin él, todas
+// las rutas throttle:X,Y de un mismo dominio+IP comparten un único
+// contador (la firma default de Laravel es dominio+IP, sin importar la
+// ruta) — se descubrió probando el flujo real, no por lectura de docs.
+Route::prefix('demo')->name('demo.publico.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\DemoPublicoController::class, 'index'])->name('index')->middleware('throttle:30,1,demo-index');
+    Route::get('/listo/{slug}', [\App\Http\Controllers\DemoPublicoController::class, 'listo'])->name('listo')->middleware('throttle:30,1,demo-listo');
+    Route::get('/{perfil}', [\App\Http\Controllers\DemoPublicoController::class, 'solicitar'])->name('solicitar')->middleware('throttle:30,1,demo-solicitar');
+    Route::post('/{perfil}', [\App\Http\Controllers\DemoPublicoController::class, 'crear'])->name('crear')->middleware('throttle:3,10,demo-crear');
+});
+
 Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'middleware' => ['auth', '2fa', 'admin', 'setup.check']], function () {
     Route::get('/dashboard', 'HomeController@index')->name('dashboard.home');
 
@@ -152,13 +173,12 @@ Route::group(['as' => 'panel.', 'namespace' => 'Panel', 'middleware' => ['auth',
     // Odontología (mínimo real — ver docs/ARQUITECTURA_MODULAR.md Etapa 4.1 y 4.3)
     Route::get('odontologia', 'OdontologiaController@index')->name('odontologia.index')->middleware('capability:odontologia');
     Route::get('odontologia/paciente/{paciente}', 'OdontologiaController@porPaciente')->name('odontologia.paciente')->middleware('capability:odontologia');
-    Route::post('odontologia/paciente/{paciente}', 'OdontologiaController@crear')->name('odontologia.crear')->middleware('capability:odontologia');
     Route::get('odontologia/{odontograma}', 'OdontologiaController@show')->name('odontologia.show')->middleware('capability:odontologia');
-
-    // Medicina Laboral (Etapa 5 — segundo Componente real)
-    Route::get('medicina-laboral', 'MedicinaLaboralController@index')->name('medicina-laboral.index')->middleware('capability:medicina_laboral');
-    Route::get('medicina-laboral/paciente/{paciente}', 'MedicinaLaboralController@porPaciente')->name('medicina-laboral.paciente')->middleware('capability:medicina_laboral');
-    Route::post('medicina-laboral/paciente/{paciente}', 'MedicinaLaboralController@crear')->name('medicina-laboral.crear')->middleware('capability:medicina_laboral');
+    Route::post('odontologia/{odontograma}/denticion-temporal', 'OdontologiaController@agregarDenticionTemporal')->name('odontologia.denticionTemporal')->middleware('capability:odontologia');
+    Route::patch('odontologia/superficie/{superficie}', 'OdontologiaController@actualizarSuperficie')->name('odontologia.superficie.actualizar')->middleware('capability:odontologia');
+    Route::patch('odontologia/pieza/{pieza}/general', 'OdontologiaController@actualizarPiezaGeneral')->name('odontologia.pieza.actualizarGeneral')->middleware('capability:odontologia');
+    Route::post('odontologia/{odontograma}/tratamientos', 'OdontologiaController@crearTratamiento')->name('odontologia.tratamientos.crear')->middleware('capability:odontologia');
+    Route::patch('odontologia/tratamientos/{tratamiento}/completar', 'OdontologiaController@completarTratamiento')->name('odontologia.tratamientos.completar')->middleware('capability:odontologia');
 
     // Mensajería
     Route::get('messenger',               'MessengerController@index')->name('messenger.index');
@@ -208,7 +228,9 @@ Route::group(['as' => 'panel.', 'namespace' => 'Panel', 'middleware' => ['auth',
     Route::get('informe/plantillas/{plantilla}/preview', 'InformeController@plantillaPreview')->name('informe.plantillaPreview');
     Route::resource('informe', 'InformeController');
 
-    // Recetas
+    // Recetas — documento de prescripción ligado a un Informe (protegido
+    // por informe_access/informe_edit dentro del controller). Aplica a
+    // cualquier perfil que emita Informes, incluida Odontología.
     Route::get('recetas', 'RecetaController@index')->name('recetas.index');
     Route::delete('receta/{receta}', 'RecetaController@destroy')->name('receta.destroy');
 

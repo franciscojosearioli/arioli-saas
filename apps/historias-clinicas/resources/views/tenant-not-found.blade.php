@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $tenantId }} — Historias Clínicas</title>
+    <title>{{ $tenantId }} — Sistema de Salud</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -137,48 +137,67 @@
             </svg>
         </div>
 
-        <div class="app-label">Historias Clínicas</div>
+        <div class="app-label">Sistema de Salud</div>
 
-        <div class="available-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Subdominio disponible
-        </div>
-
-        <div class="subdomain-display">{{ $tenantId }}</div>
-        <div class="subdomain-url">{{ request()->getHost() }}</div>
-
-        <p class="description">
-            El subdominio <strong>{{ $tenantId }}</strong> está disponible para el sistema de
-            <strong>Historias Clínicas</strong>. Podés contratar este espacio para tu consultorio
-            o centro de salud y comenzar a gestionar pacientes de forma digital.
-        </p>
-
-        <div class="features">
-            <div class="feature">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Historial de pacientes
+        @if($reservado ?? false)
+            <div class="available-badge" style="background:#f3f4f6; color:#6b7280;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Subdominio reservado
             </div>
-            <div class="feature">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Turnos y agenda
-            </div>
-            <div class="feature">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Recetas digitales
-            </div>
-            <div class="feature">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Multi-usuario
-            </div>
-        </div>
 
-        <a href="http://{{ $landingHost }}" class="cta-btn">
-            Contratar este subdominio
-        </a>
+            <div class="subdomain-display">{{ $tenantId }}</div>
+            <div class="subdomain-url">{{ request()->getHost() }}</div>
 
-        <hr class="divider">
+            <p class="description">
+                El subdominio <strong>{{ $tenantId }}</strong> está reservado para uso interno
+                de la plataforma y no está disponible para contratar.
+            </p>
+
+            <hr class="divider">
+        @else
+            <div class="available-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Subdominio disponible
+            </div>
+
+            <div class="subdomain-display">{{ $tenantId }}</div>
+            <div class="subdomain-url">{{ request()->getHost() }}</div>
+
+            <p class="description">
+                El subdominio <strong>{{ $tenantId }}</strong> está disponible para
+                <strong>Sistema de Salud</strong>. Podés contratar este espacio para tu consultorio,
+                clínica o centro de salud y adaptarlo a tu especialidad.
+            </p>
+
+            <div class="features">
+                <div class="feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Historial de pacientes
+                </div>
+                <div class="feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Turnos y agenda
+                </div>
+                <div class="feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Recetas digitales
+                </div>
+                <div class="feature">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Multi-usuario
+                </div>
+            </div>
+
+            <a href="http://{{ $landingHost }}" class="cta-btn">
+                Contratar este subdominio
+            </a>
+
+            <hr class="divider">
+        @endif
 
         <p class="footer-note">
             ¿Ya tenés una cuenta?

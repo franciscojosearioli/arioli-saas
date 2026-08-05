@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\MedicinaLaboral\MedicinaLaboralExtension;
 use App\Modules\Odontologia\OdontologiaExtension;
 use App\Platform\DTO\Componente;
 use App\Platform\DTO\NavigationItem;
@@ -21,6 +20,11 @@ return [
         key: 'salud_mental',
         nombre: 'Salud Mental / Adicciones',
         descripcion: 'Habilita la ficha psicosocial extendida: familia, educación, situación laboral, problemática y antecedentes.',
+        categoria: 'especialidad',
+        core: false,
+        demo: true,
+        contratable: true,
+        dependencias: [],
         capabilities: [],
         fieldVisibilitySeed: ['ficha_psicosocial_extendida'],
     ),
@@ -29,7 +33,22 @@ return [
         key: 'odontologia',
         nombre: 'Odontología',
         descripcion: 'Módulo odontológico — versión mínima, permisos provisionados dinámicamente + un ítem de menú real.',
+        categoria: 'especialidad',
+        core: false,
+        demo: true,
+        contratable: true,
+        dependencias: [],
         capabilities: ['odontologia'],
+        // 'medicacion' es seguimiento longitudinal de medicación por
+        // paciente (dosis/horarios/fecha, ver MedicacionController) — no
+        // "Recetas" (RecetaController, documento de prescripción ligado a
+        // un Informe, que sí corresponde a Odontología y queda intacto).
+        // 'consentimientos' (Etapa 6.6.2, pedido explícito de Francisco
+        // tras probar el flujo real): no aplica al consultorio
+        // odontológico — no hay consentimientos informados de tipo
+        // psicosocial/tratamiento clínico que este perfil use.
+        capabilitiesDisabled: ['medicacion', 'consentimientos'],
+        fieldVisibilitySeed: ['ficha_clinica_basica'],
         extension: new OdontologiaExtension(),
         navegacionSeed: [
             new NavigationItem(
@@ -39,24 +58,6 @@ return [
                 capabilityRequerida: 'odontologia',
                 permisoRequerido: 'odontologia_access',
                 orden: 96,
-            ),
-        ],
-    ),
-
-    'medicina_laboral' => new Componente(
-        key: 'medicina_laboral',
-        nombre: 'Medicina Laboral',
-        descripcion: 'Evaluaciones laborales (preocupacional/periódico/egreso) — segundo Componente real, Etapa 5.',
-        capabilities: ['medicina_laboral'],
-        extension: new MedicinaLaboralExtension(),
-        navegacionSeed: [
-            new NavigationItem(
-                key: 'medicina_laboral',
-                label: 'Medicina Laboral',
-                route: 'panel.medicina-laboral.index',
-                capabilityRequerida: 'medicina_laboral',
-                permisoRequerido: 'medicina_laboral_access',
-                orden: 97,
             ),
         ],
     ),

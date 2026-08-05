@@ -27,9 +27,22 @@ class AppServiceProvider extends ServiceProvider
             return class_basename($this);
         });
 
-        // Compartir la configuración del sistema con todas las vistas (cacheada 10 min)
+        // Compartir la configuración del sistema con todas las vistas (cacheada 10 min).
+        //
+        // La clave incluye el tenant explícitamente — no alcanza con confiar
+        // en config('cache.prefix') (que IdentifyTenant reasigna por
+        // request): si algún middleware anterior en el pipeline (ej.
+        // PreventRequestsDuringMaintenance) ya resolvió el store de Redis
+        // con el prefix genérico de la app, ese store queda cacheado para
+        // el resto del request y el cambio de config() posterior no lo
+        // afecta. Confirmado en vivo: sin esto, dos tenants distintos
+        // terminaban viendo el nombre/config de un tercero durante la
+        // ventana de 10 minutos — no era cosmético, era una fuga real de
+        // datos entre tenants.
         View::composer('*', function ($view) {
-            $sistemaConfig = Cache::remember('sistema_config', 600, function () {
+            $tenantKey = request()?->attributes->get('tenant_id') ?? 'central';
+
+            $sistemaConfig = Cache::remember('sistema_config_' . $tenantKey, 600, function () {
                 return ConfiguracionSistema::instancia();
             });
             $view->with('sistemaConfig', $sistemaConfig);

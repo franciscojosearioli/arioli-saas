@@ -42,4 +42,32 @@ class CapabilityInstaller implements CapabilityInstallerContract
             }
         }
     }
+
+    /**
+     * Apaga capabilities que vienen encendidas por defecto (ej. 'recetas',
+     * ver CapabilityStatesSeeder) — necesario para el primer caso real de
+     * un Componente que necesita apagar algo, no solo prender. Mismo
+     * respeto por source='manual': si un admin ya la tocó a mano, no se
+     * pisa en ninguna dirección.
+     */
+    public function deshabilitar(array $capabilityKeys): void
+    {
+        foreach ($capabilityKeys as $key) {
+            $existente = DB::table('capability_states')->where('capability_key', $key)->first();
+
+            if ($existente && $existente->source === 'manual') {
+                continue;
+            }
+
+            DB::table('capability_states')->updateOrInsert(
+                ['capability_key' => $key],
+                [
+                    'enabled' => false,
+                    'source' => 'preset',
+                    'updated_at' => now(),
+                    'created_at' => $existente->created_at ?? now(),
+                ]
+            );
+        }
+    }
 }

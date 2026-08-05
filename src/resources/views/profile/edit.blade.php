@@ -1,29 +1,34 @@
 <x-admin-layout title="Mi Perfil">
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Mi Perfil</h1>
+            <p class="page-subtitle">Administrá tus datos personales y contraseña</p>
         </div>
     </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:1000px;">
+
+        {{-- Datos personales --}}
+        <div class="card">
+            <div style="padding:24px;">
+                <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:20px;">
+                    Datos personales
+                </div>
+                @include('profile.partials.update-profile-information-form')
+            </div>
+        </div>
+
+        {{-- Contraseña --}}
+        <div class="card">
+            <div style="padding:24px;">
+                <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:20px;">
+                    Cambiar contraseña
+                </div>
+                @include('profile.partials.update-password-form')
+            </div>
+        </div>
+
+    </div>
+
 </x-admin-layout>

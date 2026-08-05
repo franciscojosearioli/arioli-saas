@@ -12,6 +12,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * (Core) — dependencia en un solo sentido, la esperada. Paciente.php NO se
  * tocó: no tiene ningún método odontogramas(). Ver docs/ARQUITECTURA_MODULAR.md
  * Etapa 4.3 para la fricción que esto reveló.
+ *
+ * Etapa 6.6.5: cambia de cardinalidad — antes una fila por VISITA (con
+ * `crear()` clonando 32 piezas en 'sana' cada vez), ahora **una fila por
+ * paciente**, registro vivo del estado bucal actual. La evolución
+ * histórica real vive en HistorialOdontologico (un cambio = una fila),
+ * no en comparar snapshots completos duplicados — ver el análisis de
+ * dominio en docs/ARQUITECTURA_MODULAR.md antes de este cambio.
+ * `numerosFdiAdulto()` se retira: reemplazado por el catálogo estático
+ * (config/platform/piezas_dentales_catalogo.php), que además de los
+ * números sabe nombre anatómico, tipo de diente y qué superficies aplican.
  */
 class Odontograma extends Model
 {
@@ -40,18 +50,11 @@ class Odontograma extends Model
 
     public function piezas()
     {
-        return $this->hasMany(PiezaDental::class);
+        return $this->hasMany(PiezaOdontologica::class);
     }
 
-    /** Notación FDI adulto: 11-18, 21-28, 31-38, 41-48 (32 piezas). */
-    public static function numerosFdiAdulto(): array
+    public function tratamientos()
     {
-        $numeros = [];
-        foreach ([1, 2, 3, 4] as $cuadrante) {
-            foreach (range(1, 8) as $posicion) {
-                $numeros[] = ($cuadrante * 10) + $posicion;
-            }
-        }
-        return $numeros;
+        return $this->hasMany(TratamientoOdontologico::class);
     }
 }

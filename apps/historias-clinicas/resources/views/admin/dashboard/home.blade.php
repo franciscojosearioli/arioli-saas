@@ -1,9 +1,16 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section('title', 'Dashboard')
 
 @push('styles')
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
 <style>
+    #dash-calendar .fc-toolbar-title { font-size: 15px; }
+    #dash-calendar .fc-button { padding: 4px 8px; font-size: 12.5px; }
+    #dash-calendar .fc-daygrid-day-number,
+    #dash-calendar .fc-col-header-cell-cushion { font-size: 12px; }
+    #dash-calendar .fc-event { font-size: 11px; cursor: pointer; }
+
     :root {
         --green:       #16a34a; --green-bg:  #f0fdf4; --green-light: #dcfce7;
         --yellow:      #d97706; --yellow-bg: #fffbeb;
@@ -204,7 +211,7 @@
     {{-- ── Welcome ── --}}
     <div class="dash-welcome">
         <div>
-            <h1>Bienvenido al Sistema HC 👩‍⚕️</h1>
+            <h1>Bienvenido a {{ $sistemaConfig->nombre_sistema ?? 'Sistema de Salud' }}</h1>
             <p>{{ now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}</p>
         </div>
         <div class="dash-date">{{ now()->format('H:i') }} hs</div>
@@ -241,6 +248,7 @@
             <a href="{{ route('panel.paciente.index') }}" class="kpi-link">Ver historias →</a>
         </div>
 
+        @if($capabilityMedicacion)
         <div class="kpi-card kpi-purple">
             <div class="kpi-top">
                 <div>
@@ -254,6 +262,7 @@
             <div class="kpi-sub"><span class="tag-gray">Tratamientos activos</span></div>
             <a href="{{ route('panel.medicacion.index') }}" class="kpi-link">Ver medicaciones →</a>
         </div>
+        @endif
 
         <div class="kpi-card kpi-yellow">
             <div class="kpi-top">
@@ -289,6 +298,7 @@
     <div class="charts-row">
 
         {{-- Donut medicaciones --}}
+        @if($capabilityMedicacion)
         <div class="chart-card">
             <div class="chart-title">Prescripciones por horario</div>
             <div class="chart-sub">Distribución de tratamientos activos</div>
@@ -308,6 +318,7 @@
                 @endforeach
             </div>
         </div>
+        @endif
 
         {{-- Actividad --}}
         <div class="chart-card">
@@ -322,6 +333,7 @@
                     </div>
                     <div class="prog-bar"><div class="prog-fill" style="width:{{ $informesRecientes/$maxAct*100 }}%;background:#3b82f6"></div></div>
                 </div>
+                @if($capabilityMedicacion)
                 <div class="act-row">
                     <div class="act-top">
                         <span class="act-label">💊 Prescripciones</span>
@@ -329,6 +341,7 @@
                     </div>
                     <div class="prog-bar"><div class="prog-fill" style="width:{{ $medicacionesRecientes/$maxAct*100 }}%;background:#7c3aed"></div></div>
                 </div>
+                @endif
                 <div class="act-row">
                     <div class="act-top">
                         <span class="act-label">👥 Pacientes nuevos</span>
@@ -348,18 +361,22 @@
                     <div class="qa-ico" style="background:var(--green-bg);color:var(--green)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
                     <span class="qa-txt">Nuevo paciente</span>
                 </a>
+                @if($capabilityMedicacion)
                 <a href="{{ route('panel.medicacion.create') }}" class="qa">
                     <div class="qa-ico" style="background:var(--purple-bg);color:var(--purple)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
                     <span class="qa-txt">Nueva medicación</span>
                 </a>
+                @endif
                 <a href="{{ route('panel.informe.create') }}" class="qa">
                     <div class="qa-ico" style="background:var(--blue-bg);color:var(--blue)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
                     <span class="qa-txt">Nuevo informe</span>
                 </a>
+                @if($capabilityMedicacion)
                 <a href="{{ route('panel.medicacion.esquema') }}" class="qa">
                     <div class="qa-ico" style="background:var(--yellow-bg);color:var(--yellow)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
                     <span class="qa-txt">Esquema de medicación</span>
                 </a>
+                @endif
             </div>
         </div>
 
@@ -402,6 +419,7 @@
         </div>
 
         {{-- Medicaciones hoy --}}
+        @if($capabilityMedicacion)
         <div class="tbl-card">
             <div class="tbl-head">
                 <span class="tbl-head-title">💊 Prescripciones programadas hoy</span>
@@ -426,8 +444,22 @@
             <div class="empty-msg">No hay prescripciones programadas para hoy.</div>
             @endif
         </div>
+        @endif
 
     </div>
+
+    {{-- ── Calendario ── --}}
+    @if(Route::has('panel.agenda.eventos'))
+    <div class="tbl-card" style="animation: fadeUp .4s .4s ease both;">
+        <div class="tbl-head">
+            <span class="tbl-head-title">🗓️ Calendario</span>
+            <a href="{{ route('panel.agenda.index') }}" class="tbl-head-link">Ver agenda →</a>
+        </div>
+        <div style="padding:16px;">
+            <div id="dash-calendar"></div>
+        </div>
+    </div>
+    @endif
 
 </div>
 @endsection
@@ -436,26 +468,29 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const medData = @json($medicaciones->groupBy('horario')->map->count());
-    const horarios = ['mañana','mediodía','tarde','noche'];
-    const colores  = ['#16a34a','#d97706','#3b82f6','#7c3aed'];
+    const medCanvas = document.getElementById('chartMedicaciones');
+    if (medCanvas) {
+        const medData = @json($medicaciones->groupBy('horario')->map->count());
+        const horarios = ['mañana','mediodía','tarde','noche'];
+        const colores  = ['#16a34a','#d97706','#3b82f6','#7c3aed'];
 
-    new Chart(document.getElementById('chartMedicaciones'), {
-        type: 'doughnut',
-        data: {
-            labels: horarios.map(h => h.charAt(0).toUpperCase() + h.slice(1)),
-            datasets: [{
-                data: horarios.map(h => medData[h] || 0),
-                backgroundColor: colores,
-                borderWidth: 0, hoverOffset: 6
-            }]
-        },
-        options: {
-            plugins: { legend: { display: false } },
-            cutout: '70%',
-            animation: { animateRotate: true, duration: 800 }
-        }
-    });
+        new Chart(medCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: horarios.map(h => h.charAt(0).toUpperCase() + h.slice(1)),
+                datasets: [{
+                    data: horarios.map(h => medData[h] || 0),
+                    backgroundColor: colores,
+                    borderWidth: 0, hoverOffset: 6
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                cutout: '70%',
+                animation: { animateRotate: true, duration: 800 }
+            }
+        });
+    }
 
     // Animar barras de progreso
     document.querySelectorAll('.prog-fill').forEach(el => {
@@ -466,3 +501,43 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endpush
+
+@if(Route::has('panel.agenda.eventos'))
+@push('scripts')
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var calendarEl = document.getElementById('dash-calendar');
+    if (!calendarEl) return;
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'es',
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left:   'prev,next today',
+            center: 'title',
+            right:  'dayGridMonth,listWeek'
+        },
+        buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
+        height: 480,
+        nowIndicator: true,
+        navLinks: false,
+        selectable: false,
+        editable: false,
+        dayMaxEvents: 3,
+        events: '{{ route("panel.agenda.eventos") }}',
+        eventClick: function (info) {
+            info.jsEvent.preventDefault();
+            var props = info.event.extendedProps;
+            @canany(['agenda_show', 'agenda_edit'])
+            if (props.url_show) window.location.href = props.url_show;
+            @endcanany
+        },
+    });
+
+    calendar.render();
+});
+</script>
+@endpush
+@endif

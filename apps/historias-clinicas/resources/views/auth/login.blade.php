@@ -14,10 +14,22 @@
 <p class="subtitle">Ingresá con tus credenciales de acceso</p>
 
 @php
-    // Demo instances always use 'demo' as the first subdomain (ProvisionDemoInstance::DEMO_TENANT).
+    // Demo oficial (viejo, un solo slot) — siempre subdominio 'demo'.
     // Subdomain check avoids HTTP call to SaaS Core that may fail before cache is populated.
-    $isDemoLogin = (explode('.', request()->getHost())[0] ?? '') === 'demo';
-    $demoCredentials = config('demo.credentials', []);
+    $isOfficialDemoLogin = (explode('.', request()->getHost())[0] ?? '') === 'demo';
+
+    // Demos de autoservicio (Etapa 6.4) — DemoInstance vive en la DB
+    // maestra, no en la del tenant actual, por eso mysql_tenant_admin
+    // (que al inicio de un request normal sigue apuntando a la maestra).
+    $tenantId = request()->attributes->get('tenant_id');
+    $selfServiceDemo = $tenantId
+        ? \App\Models\DemoInstance::on('mysql_tenant_admin')->where('tenant_key', $tenantId)->first()
+        : null;
+
+    $isDemoLogin = $isOfficialDemoLogin || $selfServiceDemo !== null;
+    $demoCredentials = $selfServiceDemo
+        ? [['role' => 'Admin', 'email' => 'admin@admin.com', 'password' => 'password']]
+        : config('demo.credentials', []);
 @endphp
 
 @if($isDemoLogin && !empty($demoCredentials))

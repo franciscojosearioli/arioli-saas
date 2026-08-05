@@ -32,30 +32,44 @@ use Throwable;
  * Perfil) — la primera es una operación de servidor; la segunda es
  * contenido de aplicación. Separadas en dos métodos, no dos clases — no
  * hay todavía un segundo consumidor que justifique más que eso.
+ *
+ * Etapa 6.4: `key` (interno, sufijo de la DB, nunca visible) y `slug`
+ * (público, DNS-safe, usado por IdentifyTenant para resolver el
+ * subdominio) son campos separados a propósito — ver
+ * docs/ARQUITECTURA_MODULAR.md.
  */
 class TenantsCrear extends Command
 {
     private const CONEXION = 'mysql_tenant_admin';
 
     protected $signature = 'tenants:crear
-        {key : Clave del tenant, minúsculas/números/guión bajo}
+        {key : Clave del tenant, minúsculas/números/guión bajo/guión medio}
+        {--slug= : Slug público para el subdominio (por defecto, key con _ reemplazado por -)}
         {--perfil= : Clave de un Perfil en config/platform/perfiles.php}
         {--con-datos-demo : Sembrar el Escenario Demo del perfil elegido (Etapa 6.2)}';
 
     protected $description = 'Crea un tenant nuevo: DB + migraciones + seeders base + Perfil opcional + datos demo opcionales';
 
-    private const ESCENARIOS_DEMO = [
-        'odontologia' => \Database\Seeders\OdontologiaDemoSeeder::class,
-        'medicina_laboral' => \Database\Seeders\MedicinaLaboralDemoSeeder::class,
-        'salud_mental' => \Database\Seeders\SaludMentalDemoSeeder::class,
-    ];
-
     public function handle(): int
     {
         $key = $this->argument('key');
 
-        if (! preg_match('/^[a-z0-9_]+$/', $key)) {
-            $this->error('La clave solo puede tener minúsculas, números y guión bajo.');
+        if (! preg_match('/^[a-z0-9_-]+$/', $key)) {
+            $this->error('La clave solo puede tener minúsculas, números, guión bajo y guión medio.');
+            return self::FAILURE;
+        }
+
+        $slug = $this->option('slug') ?: str_replace('_', '-', $key);
+
+        if (! preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/', $slug)) {
+            $this->error("El slug '{$slug}' no es válido — solo minúsculas, números y guión medio (no al inicio/final).");
+            return self::FAILURE;
+        }
+
+        $reservados = config('reserved_slugs', []);
+        $valorReservado = collect([$key, $slug])->first(fn ($v) => in_array(strtolower($v), $reservados, true));
+        if ($valorReservado) {
+            $this->error("'{$valorReservado}' es un subdominio reservado de la plataforma (ver config/platform/reserved_slugs.php) — no puede usarse como tenant_key ni slug.");
             return self::FAILURE;
         }
 
@@ -72,6 +86,12 @@ class TenantsCrear extends Command
             return self::FAILURE;
         }
 
+        if (Tenant::where('slug', $slug)->exists()) {
+            $this->error("Ya existe un tenant con el slug '{$slug}'.");
+            $this->restaurarDefault($originalDefault);
+            return self::FAILURE;
+        }
+
         try {
             $this->crearBaseDeDatos($database);
         } catch (Throwable $e) {
@@ -82,6 +102,7 @@ class TenantsCrear extends Command
 
         $tenant = Tenant::create([
             'tenant_key' => $key,
+            'slug' => $slug,
             'database' => $database,
             'status' => 'en_migracion',
         ]);
@@ -152,8 +173,13 @@ class TenantsCrear extends Command
         app(ComponenteInstallerContract::class)->instalar($perfil->componentes);
         $this->info("Perfil '{$perfilKey}' aplicado: " . implode(', ', $perfil->componentes ?: ['(sin componentes opcionales)']));
 
-        if ($conDatosDemo && isset(self::ESCENARIOS_DEMO[$perfilKey])) {
-            Artisan::call('db:seed', ['--class' => self::ESCENARIOS_DEMO[$perfilKey], '--force' => true]);
+        // El nombre del sistema (login, título de pestaña) se deriva del
+        // Perfil, no de config('componentes') — clinica_general no instala
+        // ningún Componente pero igual necesita su propio nombre.
+        \App\Models\ConfiguracionSistema::instancia()->update(['nombre_sistema' => $perfil->nombreSistema]);
+
+        if ($conDatosDemo && $perfil->demoSeeder) {
+            Artisan::call('db:seed', ['--class' => $perfil->demoSeeder, '--force' => true]);
             $this->info("Escenario demo de '{$perfilKey}' sembrado.");
         }
     }

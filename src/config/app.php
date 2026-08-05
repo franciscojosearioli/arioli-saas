@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'America/Argentina/Buenos_Aires',
 
     /*
     |--------------------------------------------------------------------------
@@ -78,11 +78,11 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'es'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'es'),
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    'faker_locale' => env('APP_FAKER_LOCALE', 'es_AR'),
 
     /*
     |--------------------------------------------------------------------------
@@ -123,4 +123,9 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'tenant_domain'       => env('TENANT_DOMAIN', '127.0.0.1.nip.io'),
+    'admin_domain'        => env('ADMIN_DOMAIN', 'admin.127.0.0.1.nip.io'),
+    'cliente_domain'      => env('CLIENTE_DOMAIN', 'cliente.127.0.0.1.nip.io'),
+    'landing_domain'      => env('LANDING_DOMAIN', '127.0.0.1.nip.io'),
+    'api_license_secret'  => env('API_LICENSE_SECRET'),
 ];

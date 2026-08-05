@@ -1,4 +1,4 @@
-﻿@extends('layouts.panel')
+@extends('layouts.panel')
 @section('title', 'Editar Esquema — ' . ($paciente->apellido ?? '') . ', ' . ($paciente->nombre ?? ''))
 
 @push('styles')

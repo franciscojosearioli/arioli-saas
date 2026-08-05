@@ -38,7 +38,7 @@ class ConfiguracionSistema extends Model
     public static function instancia(): self
     {
         return static::firstOrCreate([], [
-            'nombre_sistema'     => 'Historias Clínicas',
+            'nombre_sistema'     => 'Sistema de Salud',
             'nombre_institucion' => '',
             'provincia'          => 'Buenos Aires',
             'pais'               => 'Argentina',

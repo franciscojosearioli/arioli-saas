@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Configuración inicial — {{ $config->nombre_sistema ?? 'Historias Clínicas' }}</title>
+    <title>Configuración inicial — {{ $config->nombre_sistema ?? 'Sistema de Salud' }}</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         body { background: #0f172a; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px 48px; margin: 0; }
@@ -89,7 +89,7 @@
             <div class="form-group">
                 <label class="form-label" for="nombre_sistema">Nombre del sistema<span class="required-mark">*</span></label>
                 <input type="text" name="nombre_sistema" id="nombre_sistema" class="form-input"
-                       value="{{ old('nombre_sistema', $config->nombre_sistema ?? 'Historias Clínicas') }}" required>
+                       value="{{ old('nombre_sistema', $config->nombre_sistema ?? 'Sistema de Salud') }}" required>
                 <span class="hint">Aparece en el título del navegador y en el encabezado.</span>
                 @error('nombre_sistema') <span class="field-err">{{ $message }}</span> @enderror
             </div>

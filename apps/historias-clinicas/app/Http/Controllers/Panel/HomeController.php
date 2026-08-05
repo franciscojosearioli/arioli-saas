@@ -7,6 +7,7 @@ use App\Models\Paciente;
 use App\Models\Medicacion;
 use App\Models\Informe;
 use App\Models\ConfiguracionSistema;
+use App\Platform\PlatformRegistry;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 
@@ -31,28 +32,35 @@ class HomeController
         // Total de historias clínicas
         $historiasCount = Paciente::count();
 
-        // Obtener medicaciones de pacientes activos
-        $pacientes = Paciente::whereHas('ficha_admision', function($query) {
-            $query->whereNull('fecha_egreso');
-        })->get();
+        // Medicación — mismo Gate que el link de menú "Prescripciones"
+        // (AuthGates: medicacion_access ↔ capability_key='medicacion'). Sin
+        // este chequeo el dashboard consultaba y mostraba Medicación aunque
+        // el perfil del tenant la tuviera deshabilitada (ej. Odontología).
+        $capabilityMedicacion = app(PlatformRegistry::class)->isCapabilityEnabled('medicacion');
 
         $medicaciones = collect();
-        foreach ($pacientes as $paciente) {
-            $ultimaFecha = Medicacion::where('paciente_id', $paciente->id)
-                ->latest('fecha')
-                ->value('fecha');
+        if ($capabilityMedicacion) {
+            $pacientes = Paciente::whereHas('ficha_admision', function($query) {
+                $query->whereNull('fecha_egreso');
+            })->get();
 
-            if ($ultimaFecha) {
-                $meds = Medicacion::where('paciente_id', $paciente->id)
-                    ->where('fecha', $ultimaFecha)
-                    ->get();
-                $medicaciones = $medicaciones->merge($meds);
+            foreach ($pacientes as $paciente) {
+                $ultimaFecha = Medicacion::where('paciente_id', $paciente->id)
+                    ->latest('fecha')
+                    ->value('fecha');
+
+                if ($ultimaFecha) {
+                    $meds = Medicacion::where('paciente_id', $paciente->id)
+                        ->where('fecha', $ultimaFecha)
+                        ->get();
+                    $medicaciones = $medicaciones->merge($meds);
+                }
             }
         }
 
         // Conteos adicionales
         $informesCount = Informe::count();
-        $medicacionesCount = Medicacion::count();
+        $medicacionesCount = $capabilityMedicacion ? Medicacion::count() : 0;
 
         // Estadísticas adicionales para el dashboard
         $informesHoy = Informe::whereDate('created_at', now())->count();
@@ -87,6 +95,7 @@ class HomeController
             'pacientesInactivosCount',
             'historiasCount',
             'informesCount',
+            'capabilityMedicacion',
             'medicacionesCount',
             'informesHoy',
             'informesSemana',
