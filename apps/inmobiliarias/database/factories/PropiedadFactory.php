@@ -39,12 +39,12 @@ class PropiedadFactory extends Factory
             'banos' => in_array($tipo, ['casa', 'departamento', 'local', 'oficina'], true) ? $this->faker->numberBetween(1, 3) : null,
             'cocheras' => $this->faker->numberBetween(0, 2),
             'direccion' => $this->faker->streetAddress(),
-            'provincia' => 'Córdoba',
+            'provincia' => $this->faker->randomElement(config('argentina.provincias')),
             'ciudad' => $this->faker->city(),
             'barrio' => $this->faker->optional()->streetName(),
             'servicios' => $this->faker->randomElements(
-                ['agua', 'luz', 'gas', 'cloacas', 'internet'],
-                $this->faker->numberBetween(0, 5)
+                config('argentina.servicios'),
+                $this->faker->numberBetween(0, count(config('argentina.servicios')))
             ),
         ];
     }

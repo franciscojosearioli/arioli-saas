@@ -25,7 +25,7 @@ class ClienteFactory extends Factory
             'email' => $this->faker->optional()->safeEmail(),
             'telefono' => $this->faker->optional()->phoneNumber(),
             'direccion' => $this->faker->optional()->streetAddress(),
-            'provincia' => 'Córdoba',
+            'provincia' => $this->faker->randomElement(config('argentina.provincias')),
             'ciudad' => $this->faker->city(),
         ];
     }

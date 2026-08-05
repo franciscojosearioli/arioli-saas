@@ -23,7 +23,7 @@ class DesarrolloFactory extends Factory
             'nombre' => 'Desarrollo '.$this->faker->streetName(),
             'tipo' => $this->faker->randomElement(['loteo', 'barrio_cerrado', 'edificio', 'emprendimiento']),
             'descripcion' => $this->faker->optional()->paragraph(),
-            'provincia' => 'Córdoba',
+            'provincia' => $this->faker->randomElement(config('argentina.provincias')),
             'ciudad' => $this->faker->city(),
             'barrio' => $this->faker->optional()->streetName(),
         ];
