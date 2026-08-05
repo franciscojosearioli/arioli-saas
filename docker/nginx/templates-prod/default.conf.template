@@ -665,49 +665,6 @@ server {
     location ~ /\.(?!well-known).* { deny all; }
 }
 
-# Marketplace — servicio de solo-lectura pública, separado de cada tenant
-# (§01/§08 del Artifact) — nunca accede directo a la base de un tenant.
-server {
-    listen 80;
-    listen 443 ssl;
-    server_name marketplace.arioli.dev marketplace.internal;
-    root /var/www/marketplace/public;
-    index index.php;
-
-    ssl_certificate     /etc/nginx/ssl/cloudflare-origin.pem;
-    ssl_certificate_key /etc/nginx/ssl/cloudflare-origin.key;
-
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    client_max_body_size 50M;
-
-    location /storage/ {
-        alias /var/www/marketplace/storage/app/public/;
-        try_files $uri $uri/ =404;
-        access_log off;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Content-Type-Options "nosniff" always;
-    }
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location = /favicon.ico { access_log off; log_not_found off; }
-    location = /robots.txt  { access_log off; log_not_found off; }
-
-    location ~ \.php$ {
-        fastcgi_pass   marketplace_app:9000;
-        fastcgi_index  index.php;
-        fastcgi_param  SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
-        include        fastcgi_params;
-    }
-
-    location ~ /\.(?!well-known).* { deny all; }
-}
-
 # Tenants (wildcard — para futuros sistemas o acceso directo al core)
 server {
     listen 80;

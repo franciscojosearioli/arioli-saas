@@ -7,7 +7,6 @@ networks:
 volumes:
   mysql_data:
   redis_data:
-  meilisearch_data:
 
 services:
 
@@ -26,7 +25,6 @@ services:
       - ./apps/subastas:/var/www/subastas:ro
       - ./apps/chatia:/var/www/chatia:ro
       - ./apps/inmobiliarias:/var/www/inmobiliarias:ro
-      - ./apps/marketplace:/var/www/marketplace:ro
       - ./docker/nginx/templates-prod:/etc/nginx/templates:ro
       - ./docker/nginx/ssl:/etc/nginx/ssl:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
@@ -41,7 +39,6 @@ services:
       - subastas_app
       - chatia_app
       - inmobiliarias_app
-      - marketplace_app
     networks:
       - saas_network
     restart: unless-stopped
@@ -532,9 +529,6 @@ services:
       - SAAS_ADMIN_HOST=${SAAS_ADMIN_HOST:-admin.arioli.dev}
       - SAAS_CLIENT_URL=${SAAS_CLIENT_URL:-https://cliente.arioli.dev}
       - SAAS_LANDING_URL=${SAAS_LANDING_URL:-https://arioli.dev}
-      - MARKETPLACE_API_URL=http://nginx
-      - MARKETPLACE_API_HOST=marketplace.arioli.dev
-      - MARKETPLACE_API_TOKEN=${MARKETPLACE_API_TOKEN}
     depends_on:
       mysql:
         condition: service_healthy
@@ -571,9 +565,6 @@ services:
       - QUEUE_CONNECTION=redis
       - CACHE_STORE=redis
       # El que corre publicaciones:sincronizar de verdad es este contenedor.
-      - MARKETPLACE_API_URL=http://nginx
-      - MARKETPLACE_API_HOST=marketplace.arioli.dev
-      - MARKETPLACE_API_TOKEN=${MARKETPLACE_API_TOKEN}
     depends_on:
       mysql:
         condition: service_healthy
@@ -613,61 +604,6 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "mail.arioli.dev:host-gateway"
-
-  # §01/§08: servicio de solo-lectura pública, base propia, nunca accede
-  # directo a la base de un tenant.
-  marketplace_app:
-    build:
-      context: ./apps/marketplace
-      dockerfile: Dockerfile
-    container_name: saas_marketplace
-    volumes:
-      - ./apps/marketplace:/var/www/html
-      - ./apps/marketplace/docker-php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
-    environment:
-      - APP_ENV=production
-      - APP_KEY=${MARKETPLACE_APP_KEY}
-      - APP_URL=https://marketplace.arioli.dev
-      - DB_CONNECTION=mysql
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_DATABASE=marketplace
-      - DB_USERNAME=${DB_USERNAME:-saas_user}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SESSION_DRIVER=file
-      - QUEUE_CONNECTION=redis
-      - CACHE_STORE=redis
-      - SCOUT_DRIVER=meilisearch
-      - MEILISEARCH_HOST=http://meilisearch:7700
-      - MEILISEARCH_KEY=${MEILISEARCH_KEY}
-      - MARKETPLACE_API_TOKEN=${MARKETPLACE_API_TOKEN}
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      meilisearch:
-        condition: service_started
-    networks:
-      - saas_network
-    restart: unless-stopped
-    extra_hosts:
-      - "mail.arioli.dev:host-gateway"
-
-  meilisearch:
-    image: getmeili/meilisearch:v1.10
-    container_name: saas_meilisearch
-    environment:
-      - MEILI_MASTER_KEY=${MEILISEARCH_KEY}
-      - MEILI_ENV=production
-      - MEILI_NO_ANALYTICS=true
-    volumes:
-      - meilisearch_data:/meili_data
-    networks:
-      - saas_network
-    restart: unless-stopped
 
   # Cierre automático de subastas vencidas + extensión del "minuto de ley"
   # (Módulos 3-4, ver propuesta_subastas_judiciales.pdf §2.1).
