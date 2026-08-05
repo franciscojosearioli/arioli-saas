@@ -2,10 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\ArqueoCajaController;
 use App\Http\Controllers\Api\V1\ClienteController;
+use App\Http\Controllers\Api\V1\ComisionController;
+use App\Http\Controllers\Api\V1\ConfiguracionController;
 use App\Http\Controllers\Api\V1\ConstructoraController;
+use App\Http\Controllers\Api\V1\ContratoController;
+use App\Http\Controllers\Api\V1\CuotaController;
 use App\Http\Controllers\Api\V1\DesarrolloController;
+use App\Http\Controllers\Api\V1\DocumentoController;
 use App\Http\Controllers\Api\V1\LeadController;
+use App\Http\Controllers\Api\V1\OperacionController;
+use App\Http\Controllers\Api\V1\PagoController;
 use App\Http\Controllers\Api\V1\PropiedadController;
 use App\Http\Controllers\ProfileController;
 use App\Livewire\Catalogo\Constructoras;
@@ -88,4 +96,45 @@ Route::prefix('api/v1')->middleware([
         ->parameters(['propiedades' => 'propiedad']);
     Route::apiResource('clientes', ClienteController::class);
     Route::apiResource('leads', LeadController::class);
+
+    /*
+    |----------------------------------------------------------------
+    | Fase 2 — Operaciones + Finanzas (§04, §17 Rev. 1.2)
+    |----------------------------------------------------------------
+    */
+    // Mismo problema de pluralización inglesa que 'propiedades' -> ver
+    // Propiedad.php / Operacion.php.
+    Route::apiResource('operaciones', OperacionController::class)
+        ->parameters(['operaciones' => 'operacion']);
+    Route::post('operaciones/{operacion}/partes', [OperacionController::class, 'asignarParte']);
+    Route::post('operaciones/{operacion}/plan-de-cuotas', [OperacionController::class, 'generarPlanDeCuotas']);
+    Route::post('operaciones/{operacion}/cerrar', [OperacionController::class, 'cerrar']);
+    Route::post('operaciones/{operacion}/cancelar', [OperacionController::class, 'cancelar']);
+
+    Route::apiResource('contratos', ContratoController::class);
+    Route::post('contratos/{contrato}/renovar', [ContratoController::class, 'renovar']);
+
+    Route::apiResource('cuotas', CuotaController::class);
+
+    // Un pago registrado no se edita ni se borra (PagoPolicy) — solo
+    // index/store/show tienen sentido como rutas.
+    Route::apiResource('pagos', PagoController::class)->only(['index', 'store', 'show']);
+
+    // La comisión se genera sola al cerrar una Operación — solo lectura +
+    // la acción explícita de liquidar, nunca un store/update genérico.
+    Route::apiResource('comisiones', ComisionController::class)
+        ->only(['index', 'show'])
+        ->parameters(['comisiones' => 'comision']);
+    Route::post('comisiones/{comision}/liquidar', [ComisionController::class, 'liquidar']);
+
+    Route::apiResource('documentos', DocumentoController::class);
+
+    // Un arqueo ya cerrado no se corrige por API (ArqueoCajaPolicy).
+    Route::apiResource('arqueos-caja', ArqueoCajaController::class)
+        ->only(['index', 'store', 'show'])
+        ->parameters(['arqueos-caja' => 'arqueoCaja']);
+
+    // Fila única de configuración del tenant — no es una colección.
+    Route::get('configuracion', [ConfiguracionController::class, 'show']);
+    Route::patch('configuracion', [ConfiguracionController::class, 'update']);
 });
