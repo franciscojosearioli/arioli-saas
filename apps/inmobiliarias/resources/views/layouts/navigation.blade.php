@@ -15,6 +15,21 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('constructoras.index')" :active="request()->routeIs('constructoras.*')">
+                        {{ __('Constructoras') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('desarrollos.index')" :active="request()->routeIs('desarrollos.*')">
+                        {{ __('Desarrollos') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('propiedades.index')" :active="request()->routeIs('propiedades.*')">
+                        {{ __('Propiedades') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
+                        {{ __('Clientes') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('leads.index')" :active="request()->routeIs('leads.*')">
+                        {{ __('Leads') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -69,6 +84,21 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('constructoras.index')" :active="request()->routeIs('constructoras.*')">
+                {{ __('Constructoras') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('desarrollos.index')" :active="request()->routeIs('desarrollos.*')">
+                {{ __('Desarrollos') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('propiedades.index')" :active="request()->routeIs('propiedades.*')">
+                {{ __('Propiedades') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
+                {{ __('Clientes') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('leads.index')" :active="request()->routeIs('leads.*')">
+                {{ __('Leads') }}
             </x-responsive-nav-link>
         </div>
 

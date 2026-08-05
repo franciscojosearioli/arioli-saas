@@ -8,6 +8,11 @@ use App\Http\Controllers\Api\V1\DesarrolloController;
 use App\Http\Controllers\Api\V1\LeadController;
 use App\Http\Controllers\Api\V1\PropiedadController;
 use App\Http\Controllers\ProfileController;
+use App\Livewire\Catalogo\Constructoras;
+use App\Livewire\Catalogo\Desarrollos;
+use App\Livewire\Catalogo\Propiedades;
+use App\Livewire\Crm\Clientes;
+use App\Livewire\Crm\Leads;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
@@ -42,6 +47,14 @@ Route::middleware([
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+        // Panel de Catálogo + CRM (§04) — la autorización real vive en
+        // cada Policy, no acá: estas rutas solo exigen estar logueado.
+        Route::get('/constructoras', Constructoras::class)->name('constructoras.index');
+        Route::get('/desarrollos', Desarrollos::class)->name('desarrollos.index');
+        Route::get('/propiedades', Propiedades::class)->name('propiedades.index');
+        Route::get('/clientes', Clientes::class)->name('clientes.index');
+        Route::get('/leads', Leads::class)->name('leads.index');
     });
 
     require __DIR__.'/auth.php';
