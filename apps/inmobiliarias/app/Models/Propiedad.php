@@ -15,6 +15,15 @@ class Propiedad extends Model
     // Sin esto, Eloquent pluraliza "Propiedad" en inglés -> "propiedads".
     protected $table = 'propiedades';
 
+    // Espeja los defaults de la migración: sin esto, un create() que no
+    // manda 'estado'/'moneda' deja esos atributos en null en el modelo en
+    // memoria hasta el próximo fresh() — el default de MySQL/sqlite nunca
+    // se lee de vuelta automáticamente.
+    protected $attributes = [
+        'estado' => 'disponible',
+        'moneda' => 'ARS',
+    ];
+
     // 'ubicacion' (GEOMETRY) queda fuera a propósito — ver Desarrollo.php.
     protected $fillable = [
         'desarrollo_id',
