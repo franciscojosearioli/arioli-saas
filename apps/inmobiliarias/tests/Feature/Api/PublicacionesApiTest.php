@@ -21,7 +21,7 @@ class PublicacionesApiTest extends TestCase
         return $user;
     }
 
-    public function test_un_agente_publica_una_propiedad_y_activa_el_canal_marketplace(): void
+    public function test_un_agente_publica_una_propiedad_y_activa_el_canal_sitio_web(): void
     {
         Sanctum::actingAs($this->usuario('agente'));
 
@@ -31,9 +31,9 @@ class PublicacionesApiTest extends TestCase
             ->assertCreated()
             ->json('data');
 
-        $this->postJson("/api/v1/publicaciones/{$publicacion['id']}/canales", ['canal' => 'marketplace'])
+        $this->postJson("/api/v1/publicaciones/{$publicacion['id']}/canales", ['canal' => 'sitio_web'])
             ->assertOk()
-            ->assertJsonPath('data.canales.0.canal', 'marketplace')
+            ->assertJsonPath('data.canales.0.canal', 'sitio_web')
             ->assertJsonPath('data.canales.0.estado', 'borrador');
     }
 
@@ -51,7 +51,7 @@ class PublicacionesApiTest extends TestCase
         Sanctum::actingAs($this->usuario('agente'));
 
         $publicacion = Publicacion::factory()->create();
-        $canal = $publicacion->activarCanal('marketplace');
+        $canal = $publicacion->activarCanal('sitio_web');
 
         $this->postJson("/api/v1/publicacion-canales/{$canal->id}/pausar")
             ->assertOk()

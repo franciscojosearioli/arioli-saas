@@ -16,12 +16,20 @@ use Tests\TestCase;
 
 class PublicacionesTest extends TestCase
 {
+    private function conSitioWebConfigurado(): void
+    {
+        Configuracion::actual()->update([
+            'sitio_web_url' => 'http://sitio-tenant.test',
+            'sitio_web_api_key' => 'clave-secreta',
+        ]);
+    }
+
     public function test_activar_un_canal_lo_crea_una_sola_vez(): void
     {
         $publicacion = Publicacion::factory()->create();
 
-        $canal = $publicacion->activarCanal('marketplace');
-        $mismoCanal = $publicacion->activarCanal('marketplace');
+        $canal = $publicacion->activarCanal('sitio_web');
+        $mismoCanal = $publicacion->activarCanal('sitio_web');
 
         $this->assertSame($canal->id, $mismoCanal->id);
         $this->assertCount(1, $publicacion->fresh()->canales);
@@ -70,14 +78,14 @@ class PublicacionesTest extends TestCase
         $this->assertSame(['a.jpg', 'b.jpg'], $contenido->galeria);
     }
 
-    public function test_el_worker_publica_en_el_marketplace_y_guarda_el_external_id(): void
+    public function test_el_worker_publica_en_el_sitio_web_del_tenant_y_guarda_el_external_id(): void
     {
-        config(['marketplace.api_url' => 'http://marketplace.test']);
-        Http::fake(['marketplace.test/api/publications' => Http::response(['id' => 'mkt-123'], 201)]);
+        $this->conSitioWebConfigurado();
+        Http::fake(['sitio-tenant.test/*' => Http::response(['id' => 'sitio-123'], 201)]);
 
         $propiedad = Propiedad::factory()->create();
         $publicacion = Publicacion::factory()->create(['propiedad_id' => $propiedad->id]);
-        $publicacion->activarCanal('marketplace');
+        $publicacion->activarCanal('sitio_web');
         OutboxEvent::create([
             'aggregate_type' => Propiedad::class,
             'aggregate_id' => $propiedad->id,
@@ -88,18 +96,18 @@ class PublicacionesTest extends TestCase
 
         $canal = PublicacionCanal::first();
         $this->assertSame('publicada', $canal->estado);
-        $this->assertSame('mkt-123', $canal->external_id);
+        $this->assertSame('sitio-123', $canal->external_id);
         $this->assertNotNull(OutboxEvent::first()->procesado_en);
     }
 
     public function test_si_el_canal_falla_registra_el_error_sin_tumbar_la_sincronizacion(): void
     {
-        config(['marketplace.api_url' => 'http://marketplace.test']);
-        Http::fake(['marketplace.test/*' => Http::response(['message' => 'boom'], 500)]);
+        $this->conSitioWebConfigurado();
+        Http::fake(['sitio-tenant.test/*' => Http::response(['message' => 'boom'], 500)]);
 
         $propiedad = Propiedad::factory()->create();
         $publicacion = Publicacion::factory()->create(['propiedad_id' => $propiedad->id]);
-        $publicacion->activarCanal('marketplace');
+        $publicacion->activarCanal('sitio_web');
         OutboxEvent::create([
             'aggregate_type' => Propiedad::class,
             'aggregate_id' => $propiedad->id,
@@ -119,10 +127,7 @@ class PublicacionesTest extends TestCase
 
     public function test_el_sitio_web_del_tenant_usa_su_propia_url_configurada(): void
     {
-        Configuracion::actual()->update([
-            'sitio_web_url' => 'http://sitio-tenant.test',
-            'sitio_web_api_key' => 'clave-secreta',
-        ]);
+        $this->conSitioWebConfigurado();
         Http::fake(['sitio-tenant.test/*' => Http::response(['id' => 'sitio-987'], 201)]);
 
         $propiedad = Propiedad::factory()->create();
@@ -142,12 +147,12 @@ class PublicacionesTest extends TestCase
 
     public function test_un_canal_pausado_sin_haber_publicado_nunca_no_llama_a_nadie(): void
     {
-        config(['marketplace.api_url' => 'http://marketplace.test']);
+        $this->conSitioWebConfigurado();
         Http::fake();
 
         $propiedad = Propiedad::factory()->create();
         $publicacion = Publicacion::factory()->create(['propiedad_id' => $propiedad->id]);
-        $canal = $publicacion->activarCanal('marketplace');
+        $canal = $publicacion->activarCanal('sitio_web');
         $canal->pausar();
 
         OutboxEvent::create([
@@ -164,13 +169,13 @@ class PublicacionesTest extends TestCase
 
     public function test_despublicar_un_canal_ya_publicado_le_avisa_al_canal_que_lo_retire(): void
     {
-        config(['marketplace.api_url' => 'http://marketplace.test']);
-        Http::fake(['marketplace.test/*' => Http::response([], 200)]);
+        $this->conSitioWebConfigurado();
+        Http::fake(['sitio-tenant.test/*' => Http::response([], 200)]);
 
         $propiedad = Propiedad::factory()->create();
         $publicacion = Publicacion::factory()->create(['propiedad_id' => $propiedad->id]);
-        $canal = $publicacion->activarCanal('marketplace');
-        $canal->update(['external_id' => 'mkt-existente', 'estado' => 'despublicada']);
+        $canal = $publicacion->activarCanal('sitio_web');
+        $canal->update(['external_id' => 'sitio-existente', 'estado' => 'despublicada']);
 
         OutboxEvent::create([
             'aggregate_type' => Propiedad::class,
@@ -181,6 +186,6 @@ class PublicacionesTest extends TestCase
         Artisan::call('publicaciones:sincronizar');
 
         Http::assertSent(fn ($request) => $request->method() === 'DELETE'
-            && str_contains($request->url(), 'mkt-existente'));
+            && str_contains($request->url(), 'sitio-existente'));
     }
 }

@@ -15,7 +15,7 @@ class PublicacionCanalFactory extends Factory
     {
         return [
             'publicacion_id' => Publicacion::factory(),
-            'canal' => $this->faker->randomElement(['marketplace', 'sitio_web']),
+            'canal' => 'sitio_web',
             'estado' => 'borrador',
         ];
     }

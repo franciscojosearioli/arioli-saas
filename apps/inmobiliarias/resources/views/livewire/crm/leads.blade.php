@@ -1,6 +1,6 @@
 @php
     $origenLabel = fn (string $origen) => match ($origen) {
-        'marketplace' => 'Marketplace', 'formulario' => 'Formulario web', 'whatsapp' => 'WhatsApp',
+        'storefront' => 'Storefront', 'formulario' => 'Formulario web', 'whatsapp' => 'WhatsApp',
         'referido' => 'Referido', 'otro' => 'Otro',
     };
     $estadoBadge = fn (string $estado) => match ($estado) {
@@ -101,7 +101,7 @@
                     <div>
                         <x-input-label for="origen" value="Origen" />
                         <select id="origen" wire:model="origen" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                            <option value="marketplace">Marketplace</option>
+                            <option value="storefront">Storefront</option>
                             <option value="formulario">Formulario web</option>
                             <option value="whatsapp">WhatsApp</option>
                             <option value="referido">Referido</option>

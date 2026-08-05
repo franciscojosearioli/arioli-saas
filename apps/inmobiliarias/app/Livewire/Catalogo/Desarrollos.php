@@ -4,7 +4,6 @@ namespace App\Livewire\Catalogo;
 
 use App\Models\Constructora;
 use App\Models\Desarrollo;
-use App\Services\Marketplace\DesarrolloSync;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -102,12 +101,9 @@ class Desarrollos extends Component
             $desarrollo = Desarrollo::create($datos);
         }
 
-        // guardarUbicacion() escribe vía query builder crudo — nunca
-        // dispara el evento `updated` de Eloquent, así que el observer
-        // que sincroniza con el marketplace no se entera solo; hay que
-        // avisarle acá explícitamente.
+        // guardarUbicacion() escribe vía query builder crudo, no por
+        // asignación directa (ver el propio método en el modelo).
         $desarrollo->guardarUbicacion($wkt ?: null);
-        DesarrolloSync::sincronizar($desarrollo->fresh());
 
         $this->modalAbierto = false;
         $this->resetForm();

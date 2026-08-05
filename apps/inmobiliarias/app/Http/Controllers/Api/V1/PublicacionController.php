@@ -43,7 +43,7 @@ class PublicacionController extends Controller
         $this->authorize('update', $publicacion);
 
         $datos = $request->validate([
-            'canal' => ['required', Rule::in(['marketplace', 'sitio_web'])],
+            'canal' => ['required', Rule::in(['sitio_web'])],
         ]);
 
         $publicacion->activarCanal($datos['canal']);

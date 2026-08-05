@@ -17,8 +17,14 @@ final class LicenseClient implements LicenseClientInterface
 
     public static function fromConfig(): static
     {
+        // config('saas.api_token', '') NO cae al default cuando la key
+        // existe con valor null (SAAS_API_TOKEN sin definir en .env) — el
+        // default de config() solo aplica si la key es inexistente, no si
+        // es null. Nunca se notó hasta que algo llamó a fromConfig() de
+        // verdad en un test (la vista de login, recién con el hint de
+        // demo) — el constructor typed `string $apiToken` rechazaba null.
         return new self(
-            apiToken: config('saas.api_token', ''),
+            apiToken: config('saas.api_token') ?? '',
             adminHost: config('saas.admin_host'),
             infoUrl: config('saas.info_url'),
             product: config('version.product'),

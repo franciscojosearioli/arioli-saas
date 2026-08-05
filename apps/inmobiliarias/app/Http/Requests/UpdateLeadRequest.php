@@ -21,7 +21,7 @@ class UpdateLeadRequest extends FormRequest
             'nombre' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:50'],
-            'origen' => ['sometimes', 'required', Rule::in(['marketplace', 'formulario', 'whatsapp', 'referido', 'otro'])],
+            'origen' => ['sometimes', 'required', Rule::in(['storefront', 'formulario', 'whatsapp', 'referido', 'otro'])],
             'estado' => ['sometimes', Rule::in(['nuevo', 'contactado', 'calificado', 'convertido', 'perdido'])],
             'interes' => ['nullable', 'array'],
             'notas' => ['nullable', 'string'],

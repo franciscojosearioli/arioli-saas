@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\PagoController;
 use App\Http\Controllers\Api\V1\PropiedadController;
 use App\Http\Controllers\Api\V1\PublicacionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StorefrontController;
 use App\Livewire\Catalogo\Constructoras;
 use App\Livewire\Catalogo\Desarrollos;
 use App\Livewire\Catalogo\Propiedades;
@@ -50,11 +51,14 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
     'license',
 ])->group(function () {
-    // Sin landing pública propia (§08: eso lo resuelve el marketplace) —
-    // el subdominio de un tenant es un panel privado, no una página de
-    // marketing. Antes servía el welcome.blade.php de scaffold de
-    // Breeze sin reemplazar, nunca corregido desde Fase 0.
-    Route::get('/', fn () => redirect()->route('dashboard'));
+    // §08 (Rev. 1.3): storefront público — lo primero que ve un visitante
+    // del subdominio del tenant es esta página, no el login. Sin auth,
+    // sin outbox: lectura directa de la misma base, filtrada a lo
+    // publicado.
+    Route::get('/', [StorefrontController::class, 'index'])->name('storefront.index');
+    Route::get('/propiedades/{propiedad}', [StorefrontController::class, 'propiedad'])->name('storefront.propiedad');
+    Route::get('/desarrollos/{desarrollo}', [StorefrontController::class, 'desarrollo'])->name('storefront.desarrollo');
+    Route::get('/constructoras/{constructora}', [StorefrontController::class, 'constructora'])->name('storefront.constructora');
 
     Route::get('/dashboard', function () {
         return view('dashboard');

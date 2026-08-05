@@ -24,7 +24,7 @@ class LeadFactory extends Factory
             'nombre' => $this->faker->name(),
             'email' => $this->faker->safeEmail(),
             'telefono' => $this->faker->optional()->phoneNumber(),
-            'origen' => $this->faker->randomElement(['marketplace', 'formulario', 'whatsapp', 'referido', 'otro']),
+            'origen' => $this->faker->randomElement(['storefront', 'formulario', 'whatsapp', 'referido', 'otro']),
             'estado' => 'nuevo',
             'interes' => [
                 'tipo' => $this->faker->randomElement(['casa', 'departamento', 'loteo']),

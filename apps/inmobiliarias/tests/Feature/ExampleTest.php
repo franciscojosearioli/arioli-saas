@@ -7,10 +7,10 @@ use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    public function test_la_raiz_del_tenant_redirige_al_dashboard(): void
+    public function test_la_raiz_del_tenant_muestra_el_storefront_publico(): void
     {
         $response = $this->get('/');
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertOk();
     }
 }

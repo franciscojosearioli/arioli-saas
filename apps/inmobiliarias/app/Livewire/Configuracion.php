@@ -3,7 +3,6 @@
 namespace App\Livewire;
 
 use App\Models\Configuracion as ConfiguracionModel;
-use App\Services\Marketplace\PerfilInmobiliariaSync;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -56,10 +55,6 @@ class Configuracion extends Component
 
         $datos = $this->validate();
         $configuracion->update($datos);
-
-        // §08: el perfil público de la inmobiliaria se alimenta de acá —
-        // cada guardado de branding lo mantiene al día en el marketplace.
-        PerfilInmobiliariaSync::sincronizar($configuracion);
 
         $this->dispatch('configuracion-guardada');
     }

@@ -54,8 +54,7 @@ class Desarrollo extends Model
         static::whereKey($this->id)->update(['ubicacion' => DB::raw("ST_GeomFromText('{$wkt}')")]);
     }
 
-    // Ver el comentario equivalente en Propiedad::ubicacionComoWkt() — el
-    // guard de driver evita que DesarrolloSync rompa en sqlite (tests).
+    // Ver el comentario equivalente en Propiedad::ubicacionComoWkt().
     public function ubicacionComoWkt(): ?string
     {
         if (DB::connection()->getDriverName() !== 'mysql') {

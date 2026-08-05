@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateConfiguracionRequest;
 use App\Http\Resources\ConfiguracionResource;
 use App\Models\Configuracion;
-use App\Services\Marketplace\PerfilInmobiliariaSync;
 
 class ConfiguracionController extends Controller
 {
@@ -22,8 +21,6 @@ class ConfiguracionController extends Controller
     {
         $configuracion = Configuracion::actual();
         $configuracion->update($request->validated());
-
-        PerfilInmobiliariaSync::sincronizar($configuracion);
 
         return new ConfiguracionResource($configuracion);
     }

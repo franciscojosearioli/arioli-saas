@@ -2,20 +2,17 @@
 
 namespace App\Providers;
 
-use App\Models\Constructora;
-use App\Models\Desarrollo;
+use App\Models\Configuracion;
 use App\Models\FotoPropiedad;
 use App\Models\Propiedad;
-use App\Observers\ConstructoraObserver;
-use App\Observers\DesarrolloObserver;
 use App\Observers\FotoPropiedadObserver;
 use App\Observers\PropiedadObserver;
 use App\Services\License\LicenseClient;
 use App\Services\License\LicenseClientInterface;
 use App\Services\Publicaciones\ChannelAdapterRegistry;
-use App\Services\Publicaciones\MarketplacePropioAdapter;
 use App\Services\Publicaciones\SitioWebAdapter;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,9 +24,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(LicenseClientInterface::class, fn () => LicenseClient::fromConfig());
 
-        // §09: único lugar que arma la lista de canales soportados.
+        // §09: único lugar que arma la lista de canales soportados. El
+        // storefront propio (§08) no es un canal — se muestra en cuanto
+        // existe la Publicación, sin adapter (Rev. 1.3).
         $this->app->singleton(ChannelAdapterRegistry::class, fn () => new ChannelAdapterRegistry([
-            'marketplace' => new MarketplacePropioAdapter,
             'sitio_web' => new SitioWebAdapter,
         ]));
     }
@@ -49,7 +47,11 @@ class AppServiceProvider extends ServiceProvider
         // ningún camino de escritura se olvida de encolar el evento.
         Propiedad::observe(PropiedadObserver::class);
         FotoPropiedad::observe(FotoPropiedadObserver::class);
-        Constructora::observe(ConstructoraObserver::class);
-        Desarrollo::observe(DesarrolloObserver::class);
+
+        // §08: branding del storefront — evita repetir Configuracion::
+        // actual() en cada método de StorefrontController.
+        View::composer('layouts.storefront', function ($view): void {
+            $view->with('configuracion', Configuracion::actual());
+        });
     }
 }
