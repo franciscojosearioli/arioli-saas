@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\LeadController;
 use App\Http\Controllers\Api\V1\OperacionController;
 use App\Http\Controllers\Api\V1\PagoController;
 use App\Http\Controllers\Api\V1\PropiedadController;
+use App\Http\Controllers\Api\V1\PublicacionController;
 use App\Http\Controllers\ProfileController;
 use App\Livewire\Catalogo\Constructoras;
 use App\Livewire\Catalogo\Desarrollos;
@@ -151,4 +152,17 @@ Route::prefix('api/v1')->middleware([
     // Fila única de configuración del tenant — no es una colección.
     Route::get('configuracion', [ConfiguracionController::class, 'show']);
     Route::patch('configuracion', [ConfiguracionController::class, 'update']);
+
+    /*
+    |----------------------------------------------------------------
+    | Fase 3 — Motor de Publicaciones (§08, §09)
+    |----------------------------------------------------------------
+    */
+    Route::post('propiedades/{propiedad}/publicacion', [PublicacionController::class, 'store']);
+    Route::get('publicaciones/{publicacion}', [PublicacionController::class, 'show']);
+    Route::patch('publicaciones/{publicacion}', [PublicacionController::class, 'update']);
+    Route::post('publicaciones/{publicacion}/canales', [PublicacionController::class, 'activarCanal']);
+    Route::post('publicacion-canales/{publicacionCanal}/pausar', [PublicacionController::class, 'pausarCanal']);
+    Route::post('publicacion-canales/{publicacionCanal}/despublicar', [PublicacionController::class, 'despublicarCanal']);
+    Route::post('publicacion-canales/{publicacionCanal}/reintentar', [PublicacionController::class, 'reintentarCanal']);
 });

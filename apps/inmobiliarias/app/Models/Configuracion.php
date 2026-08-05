@@ -10,6 +10,8 @@ class Configuracion extends Model
 
     protected $fillable = [
         'comision_porcentaje',
+        'sitio_web_url',
+        'sitio_web_api_key',
     ];
 
     protected function casts(): array

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -87,5 +88,15 @@ class Propiedad extends Model
     public function documentos(): MorphMany
     {
         return $this->morphMany(Documento::class, 'documentable');
+    }
+
+    public function publicacion(): HasOne
+    {
+        return $this->hasOne(Publicacion::class);
+    }
+
+    public function fotos(): HasMany
+    {
+        return $this->hasMany(FotoPropiedad::class)->orderBy('orden');
     }
 }

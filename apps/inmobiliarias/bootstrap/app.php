@@ -25,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Las tareas de negocio (vencimientos, recordatorios, etc.) se
         // suman acá recién cuando exista el módulo que las necesita.
         $schedule->command('horizon:snapshot')->everyFiveMinutes();
+
+        // §09: el worker de sincronización de Publicaciones — polling de
+        // outbox_events, no una cola dedicada todavía (ver el comando).
+        $schedule->command('publicaciones:sincronizar')->everyMinute()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
