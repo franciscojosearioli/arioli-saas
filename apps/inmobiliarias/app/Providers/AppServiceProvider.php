@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Constructora;
 use App\Models\FotoPropiedad;
 use App\Models\Propiedad;
+use App\Observers\ConstructoraObserver;
 use App\Observers\FotoPropiedadObserver;
 use App\Observers\PropiedadObserver;
 use App\Services\License\LicenseClient;
@@ -45,5 +47,6 @@ class AppServiceProvider extends ServiceProvider
         // ningún camino de escritura se olvida de encolar el evento.
         Propiedad::observe(PropiedadObserver::class);
         FotoPropiedad::observe(FotoPropiedadObserver::class);
+        Constructora::observe(ConstructoraObserver::class);
     }
 }

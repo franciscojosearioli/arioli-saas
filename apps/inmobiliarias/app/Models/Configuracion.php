@@ -9,6 +9,9 @@ class Configuracion extends Model
     protected $table = 'configuracion';
 
     protected $fillable = [
+        'nombre_comercial',
+        'descripcion',
+        'logo_url',
         'comision_porcentaje',
         'sitio_web_url',
         'sitio_web_api_key',

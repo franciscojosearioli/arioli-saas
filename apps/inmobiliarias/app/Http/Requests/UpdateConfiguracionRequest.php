@@ -15,6 +15,9 @@ class UpdateConfiguracionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'nombre_comercial' => ['nullable', 'string', 'max:255'],
+            'descripcion' => ['nullable', 'string'],
+            'logo_url' => ['nullable', 'url', 'max:255'],
             'comision_porcentaje' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'sitio_web_url' => ['nullable', 'url', 'max:255'],
             'sitio_web_api_key' => ['nullable', 'string', 'max:255'],

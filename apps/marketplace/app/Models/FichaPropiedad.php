@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Laravel\Scout\Searchable;
 
 class FichaPropiedad extends Model
 {
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $table = 'fichas_propiedad';
 
@@ -83,5 +84,41 @@ class FichaPropiedad extends Model
     private static function slugUnico(string $titulo, string $tenantId, int $propiedadId): string
     {
         return Str::slug($titulo).'-'.Str::slug($tenantId).'-'.$propiedadId;
+    }
+
+    public function searchableAs(): string
+    {
+        return 'fichas_propiedad';
+    }
+
+    /**
+     * §08: los filtros que pide el Artifact — provincia/ciudad/tipo/
+     * precio/operación/ambientes/superficie/servicios — más el texto
+     * libre (título/descripción/barrio/desarrollo) para la búsqueda.
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+            'titulo' => $this->titulo,
+            'descripcion' => $this->descripcion,
+            'precio' => $this->precio ? (float) $this->precio : null,
+            'moneda' => $this->moneda,
+            'tipo_operacion' => $this->tipo_operacion,
+            'tipo_propiedad' => $this->tipo_propiedad,
+            'estado' => $this->estado,
+            'ciudad' => $this->ciudad,
+            'provincia' => $this->provincia,
+            'barrio' => $this->barrio,
+            'superficie_cubierta' => $this->superficie_cubierta ? (float) $this->superficie_cubierta : null,
+            'superficie_total' => $this->superficie_total ? (float) $this->superficie_total : null,
+            'ambientes' => $this->ambientes,
+            'dormitorios' => $this->dormitorios,
+            'servicios' => $this->servicios,
+            'nombre_desarrollo' => $this->nombre_desarrollo,
+            'destacada' => $this->destacada,
+            'publicada_en' => $this->publicada_en?->timestamp,
+        ];
     }
 }

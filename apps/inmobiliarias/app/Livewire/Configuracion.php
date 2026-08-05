@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Configuracion as ConfiguracionModel;
+use App\Services\Marketplace\PerfilInmobiliariaSync;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -11,20 +12,40 @@ use Livewire\Component;
 #[Title('Configuración')]
 class Configuracion extends Component
 {
+    public ?string $nombre_comercial = null;
+
+    public ?string $descripcion = null;
+
+    public ?string $logo_url = null;
+
     public ?string $comision_porcentaje = null;
+
+    public ?string $sitio_web_url = null;
+
+    public ?string $sitio_web_api_key = null;
 
     public function mount(): void
     {
         $configuracion = ConfiguracionModel::actual();
         $this->authorize('view', $configuracion);
 
+        $this->nombre_comercial = $configuracion->nombre_comercial;
+        $this->descripcion = $configuracion->descripcion;
+        $this->logo_url = $configuracion->logo_url;
         $this->comision_porcentaje = $configuracion->comision_porcentaje;
+        $this->sitio_web_url = $configuracion->sitio_web_url;
+        $this->sitio_web_api_key = $configuracion->sitio_web_api_key;
     }
 
     protected function rules(): array
     {
         return [
+            'nombre_comercial' => ['nullable', 'string', 'max:255'],
+            'descripcion' => ['nullable', 'string'],
+            'logo_url' => ['nullable', 'url', 'max:255'],
             'comision_porcentaje' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sitio_web_url' => ['nullable', 'url', 'max:255'],
+            'sitio_web_api_key' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -35,6 +56,10 @@ class Configuracion extends Component
 
         $datos = $this->validate();
         $configuracion->update($datos);
+
+        // §08: el perfil público de la inmobiliaria se alimenta de acá —
+        // cada guardado de branding lo mantiene al día en el marketplace.
+        PerfilInmobiliariaSync::sincronizar($configuracion);
 
         $this->dispatch('configuracion-guardada');
     }
